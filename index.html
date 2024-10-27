@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Alunos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header-container">
+        <img src="imagens/Almeida_Logo.jpg" alt="Minha Imagem" style="display: block; margin: 0 auto; max-width: 50%; height: auto;">
+        <h1>Cadastro de Alunos</h1>
+    </div>
+    <form id="studentForm">
+        <label for="nome">Nome *</label>
+        <input type="text" id="nome" name="nome" required>
+        
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email">
+        
+        <label for="telefone">Telefone *</label>
+        <input type="tel" id="telefone" name="telefone" required>
+
+        <label for="sexo">Sexo *</label>
+        <select id="sexo" name="sexo" required>
+            <option value="masculino">Masculino</option>
+            <option value="feminino">Feminino</option>
+        </select>
+
+        <label for="dataNascimento">Data de Nascimento *</label>
+        <input type="date" id="dataNascimento" name="dataNascimento" required>
+
+        <label for="faixa">Faixa *</label>
+        <select id="faixa" name="faixa" required>
+            <option value="cinza">Cinza</option>
+            <option value="amarela">Amarela</option>
+            <option value="laranja">Laranja</option>
+            <option value="verde">Verde</option>
+            <option value="branca">Branca</option>
+            <option value="azul">Azul</option>
+            <option value="roxa">Roxa</option>
+            <option value="marrom">Marrom</option>
+            <option value="preta">Preta</option>
+        </select>
+
+        <label for="grau">Grau *</label>
+        <select id="grau" name="grau" required>
+            <option value="1 Grau">1 Grau</option>
+            <option value="2 Graus">2 Graus</option>
+            <option value="3 Graus">3 Graus</option>
+            <option value="4 Graus">4 Graus</option>
+        </select>
+
+        <label for="plano">Plano *</label>
+        <select id="plano" name="plano" required>
+            <option value="mensal">Mensal</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="semestral">Semestral</option>
+        </select>
+
+        <label for="foto">Carregar Foto</label>
+        <input type="file" id="foto" name="foto">
+
+        <button type="submit">Salvar</button>
+        <button type="button" onclick="procurar()">Procurar</button>
+    </form>
+    <h2>Tabela de Alunos</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nome</th>
+            </tr>
+        </thead>
+        <tbody id="tabelaEstudantes">
+            <!-- Rows will be added here -->
+        </tbody>
+    </table>
+
+    <script>
+        let alunoIdSelecionado; // Variável global para armazenar o ID do aluno selecionado
+    
+        // Create (Salvar Alunos)
+        document.getElementById('studentForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+    
+            fetch('/alunos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    
+        // Read (Procurar Alunos)
+        function procurar() {
+    const nome = prompt("Digite o nome ou parte do nome do aluno (deixe em branco para ver todos):");
+    
+    // Se o usuário clicar em "Cancelar", interrompa a execução da função
+    if (nome === null) return;
+
+    let url = '/alunos';
+
+    // Só adiciona o parâmetro de busca se o nome não for uma string vazia
+    if (nome.trim() !== '') {
+        url += `?nome=${encodeURIComponent(nome)}`;
+    }
+    
+    fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        const tabela = document.getElementById('tabelaEstudantes');
+        tabela.innerHTML = '';
+        data.data.forEach(aluno => {
+            const row = `<tr>
+                            <td>${aluno.id}</td>
+                            <td><a href="#" onclick="mostrarDetalhes(${aluno.id})">${aluno.nome}</a></td>
+                         </tr>`;
+            tabela.innerHTML += row;
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+
+    
+        // Mostrar detalhes em um modal
+        function mostrarDetalhes(id) {
+            fetch(`/alunos/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                const aluno = data.data;
+                alunoIdSelecionado = aluno.id; // Armazena o ID do aluno selecionado
+                const idade = calcularIdade(aluno.dataNascimento);
+                const modalContent = `
+                    <strong>ID:</strong> ${aluno.id}<br>
+                    <strong>Nome:</strong> ${aluno.nome}<br>
+                    <strong>Email:</strong> ${aluno.email}<br>
+                    <strong>Telefone:</strong> ${aluno.telefone}<br>
+                    <strong>Sexo:</strong> ${aluno.sexo}<br>
+                    <strong>Idade:</strong> ${idade}<br>
+                    <strong>Faixa:</strong> ${aluno.faixa}<br>
+                    <strong>Grau:</strong> ${aluno.grau}<br>
+                    <strong>Plano:</strong> ${aluno.plano}
+                `;
+                document.getElementById('modalContent').innerHTML = modalContent;
+                document.getElementById('myModal').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    
+        // Função para fechar o modal
+        function closeModal() {
+            document.getElementById('myModal').style.display = 'none';
+        }
+    
+        // Função para calcular a idade a partir da data de nascimento
+        function calcularIdade(dataNascimento) {
+            const hoje = new Date();
+            const nascimento = new Date(dataNascimento);
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+            const mes = hoje.getMonth() - nascimento.getMonth();
+            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                idade--;
+            }
+            return idade;
+        }
+    
+        // Atualiza um aluno pelo ID selecionado
+        function atualizar() {
+            const formData = new FormData(document.getElementById('studentForm'));
+            const data = Object.fromEntries(formData.entries());
+    
+            fetch(`/alunos/${alunoIdSelecionado}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                closeModal(); // Fecha o modal após atualizar
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    
+        // Deleta um aluno pelo ID selecionado
+function deletar() {
+    if (confirm("Tem certeza que deseja deletar este aluno?")) {
+        fetch(`/alunos/${alunoIdSelecionado}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            closeModal(); // Fecha o modal após deletar
+            procurar(); // Atualiza a tabela de alunos
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+}
+
+    
+        // Fechar o modal quando clicar fora dele
+        window.onclick = function(event) {
+            const modal = document.getElementById('myModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>    
+
+    <!-- Modal structure -->
+<div id="myModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div id="modalContent"></div>
+        <button onclick="atualizar()">Atualizar</button>
+        <button onclick="deletar()">Deletar</button>
+
+    </div>
+</div>
+    </body>
+    </html>
+
+</html>

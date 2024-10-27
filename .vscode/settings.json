@@ -1,0 +1,11 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "academia",
+            "database": "${workspaceFolder:alternativo}/database/database.db"
+        }
+    ],
+    "sqltools.useNodeRuntime": true
+}
