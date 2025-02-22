@@ -4,3 +4,12 @@
     "sqlite3": "^5.1.7"
   }
 }
+
+"scripts": {
+  "start": "node index.js",
+  "dev": "nodemon index.js"
+}
+
+"name": "Academia Almeida Pinda",
+"version": "1.0.0",
+"description": "Banco de dados criado por joão vitor para estudar linguagem de programação com uma aplicação no mundo real",
