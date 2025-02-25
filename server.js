@@ -1,95 +1,125 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./database/database');
 const app = express();
 const port = 3000;
 const path = require('path');
-
+const mariadb = require('mariadb');
 
 // Configura o Express para servir arquivos estáticos
 app.use(express.static(path.join(__dirname)));
 
 // Adicione esta rota para servir o index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'templates', 'index.html'));
 });
 
 // Adicione middleware para analisar o corpo das requisições em formato JSON
 app.use(bodyParser.json());
 
-// Cria novo aluno
-app.post('/alunos', (req, res) => {
-    const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
-    db.run(`INSERT INTO alunos (nome, email, telefone, sexo, dataNascimento, faixa, grau, plano) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano],
-        function(err) {
-            if (err) {
-                return res.status(400).json({ error: err.message });
-            }
-            res.status(201).json({ id: this.lastID });
-        }
-    );
+// Configurar pool de conexões com o MariaDB
+const pool = mariadb.createPool({
+     host: 'localhost', 
+     user: 'root', 
+     password: 'sua_senha',  // Substitua 'sua_senha' pela senha do usuário root
+     database: 'cadastro_alunos',
+     connectionLimit: 5
 });
 
-// Lê todos os alunos ou filtra por nome, retornando apenas id e nome
-app.get('/alunos', (req, res) => {
+// Função auxiliar para executar consultas
+async function query(sql, params) {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const rows = await conn.query(sql, params);
+        return rows;
+    } catch (err) {
+        throw err;
+    } finally {
+        if (conn) conn.release(); // Libera a conexão de volta ao pool
+    }
+}
+
+// Cria novo aluno
+app.post('/alunos', async (req, res) => {
+    const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
+    const sql = `INSERT INTO alunos (nome, email, telefone, sexo, dataNascimento, faixa, grau, plano) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    const params = [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano];
+    
+    try {
+        const result = await query(sql, params);
+        res.status(201).json({ id: result.insertId });
+    } catch (err) {
+        console.error('Erro ao inserir aluno:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Lê todos os alunos ou filtra por nome
+app.get('/alunos', async (req, res) => {
     const nome = req.query.nome;
     let sql = `SELECT id, nome FROM alunos`;
     let params = [];
 
-    // Adiciona o filtro de nome caso ele exista e não seja uma string vazia
     if (nome && nome.trim() !== '') {
         sql += ` WHERE nome LIKE ?`;
         params.push(`%${nome}%`);
     }
 
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
+    try {
+        const rows = await query(sql, params);
         res.json({ data: rows });
-    });
+    } catch (err) {
+        console.error('Erro ao buscar alunos:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
-
 // Lê um aluno específico pelo ID
-app.get('/alunos/:id', (req, res) => {
+app.get('/alunos/:id', async (req, res) => {
     const id = req.params.id;
-    db.get(`SELECT * FROM alunos WHERE id = ?`, [id], (err, row) => {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
-        res.json({ data: row });
-    });
+    const sql = `SELECT * FROM alunos WHERE id = ?`;
+    const params = [id];
+
+    try {
+        const rows = await query(sql, params);
+        res.json({ data: rows[0] });
+    } catch (err) {
+        console.error('Erro ao buscar aluno:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Atualiza um aluno pelo ID
-app.put('/alunos/:id', (req, res) => {
+app.put('/alunos/:id', async (req, res) => {
     const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
     const id = req.params.id;
-    db.run(`UPDATE alunos SET nome = ?, email = ?, telefone = ?, sexo = ?, dataNascimento = ?, faixa = ?, grau = ?, plano = ? WHERE id = ?`,
-        [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, id],
-        function(err) {
-            if (err) {
-                return res.status(400).json({ error: err.message });
-            }
-            res.json({ message: 'Aluno atualizado com sucesso' });
-        }
-    );
+    const sql = `UPDATE alunos SET nome = ?, email = ?, telefone = ?, sexo = ?, dataNascimento = ?, faixa = ?, grau = ?, plano = ? WHERE id = ?`;
+    const params = [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, id];
+
+    try {
+        await query(sql, params);
+        res.json({ message: 'Aluno atualizado com sucesso' });
+    } catch (err) {
+        console.error('Erro ao atualizar aluno:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Deleta um aluno pelo ID
-app.delete('/alunos/:id', (req, res) => {
+app.delete('/alunos/:id', async (req, res) => {
     const id = req.params.id;
-    db.run(`DELETE FROM alunos WHERE id = ?`, [id], function(err) {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
+    const sql = `DELETE FROM alunos WHERE id = ?`;
+    const params = [id];
+
+    try {
+        await query(sql, params);
         res.json({ message: 'Aluno deletado com sucesso' });
-    });
+    } catch (err) {
+        console.error('Erro ao deletar aluno:', err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
 });
-
