@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
 const path = require('path');
-const mariadb = require('mariadb');
+
 
 // Configura o Express para servir arquivos estáticos
 app.use(express.static(path.join(__dirname)));
