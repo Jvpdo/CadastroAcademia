@@ -1,0 +1,341 @@
+/* Estilos para a Caixa Flutuante */
+.flutuante {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    padding: 20px;
+    border: 1px solid #888;
+    background-color: white;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+.close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    cursor: pointer;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
+    margin: 0;
+    padding: 20px;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-image: url('imagens/background.jpg');
+    background-size: cover;
+    margin: 0;
+    padding: 20px;
+}
+
+table {
+    margin-top: 0;
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: rgba(255, 255, 255, 0.8); /* Fundo branco com 80% de transparência */
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+thead {
+    background-color: #f2f2f2; /* Fundo sólido para o cabeçalho */
+}
+
+tbody tr:nth-child(odd) {
+    background-color: rgba(255, 255, 255, 0.6); /* Linhas ímpares com transparência */
+}
+
+tbody tr:nth-child(even) {
+    background-color: rgba(240, 240, 240, 0.6); /* Linhas pares com transparência */
+}
+
+.header-container {
+    text-align: center;
+    margin-bottom: 1px; /* Adiciona um espaço entre o cabeçalho e o resto da página */
+}
+
+h1 {
+    margin-bottom: 0;
+    background-color: rgba(249, 241, 0, 0.981);
+    padding: 10px;
+    display: inline-block;
+    border-radius: 5px;
+    color: #333;
+    width: fit-content; /* Ajusta a largura para caber no conteúdo */
+}
+
+
+
+h2 {
+    margin: 0;
+    margin-bottom: 0;
+    background-color: rgba(249, 241, 0, 0.981);
+    padding: 10px;
+    display: inline-block;
+    border-radius: 5px;
+    color: #333;
+    width: fit-content; /* Ajusta a largura para caber no conteúdo */
+}
+
+
+
+form {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    color: #333;
+}
+
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], select, input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+}
+
+thead {
+    background-color: #f2f2f2;
+}
+
+#procurarAluno {
+    width: calc(100% - 120px);
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-sizing: border-box;
+}
+
+#procurarAluno + button {
+    padding: 10px 15px;
+    background-color: #007BFF;
+    border: none;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: background-color 0.3s;
+}
+
+#procurarAluno + button:hover {
+    background-color: #0069d9;
+}
+
+/*ESTILIZAÇÃO DO MODAL
+
+/* Contêiner Flexível Principal */
+#modalBody {
+    display: flex;
+    margin-top: 20px;
+}
+
+/* Coluna da Esquerda: Informações e Botões */
+.modal-content-left {
+    flex: 1 1 60%; /* Ocupa 60% da largura */
+    display: flex;
+    flex-direction: column;
+    margin-right: 20px;
+}
+
+.modal-content-left div {
+    margin-bottom: 10px;
+}
+
+/* Botões de Ação */
+.modal-buttons {
+    margin-top: 20px;
+}
+
+.modal-buttons button {
+    margin-right: 10px;
+}
+
+/* Coluna da Direita: Imagem */
+.modal-content-right {
+    flex: 0 0 auto;
+    width: 200px;
+}
+
+/* Caixa de Proporção */
+.aspect-ratio-box {
+    position: relative;
+    width: 100%;
+    padding-bottom: 133.33%; /* (4 / 3) * 100% para obter a proporção 3:4 */
+    overflow: hidden;
+}
+
+/* Imagem dentro da Caixa de Proporção */
+.aspect-ratio-box img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+/* Ajustes Responsivos */
+@media (max-width: 600px) {
+    #modalBody {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .modal-content-left {
+        margin-right: 0;
+        flex: 1 1 100%;
+    }
+
+    .modal-content-right {
+        margin-top: 20px;
+        flex: 1 1 100%;
+    }
+
+    #imageContainer img {
+        max-width: 80%;
+    }
+}
+
+.modal-buttons button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    background-color: #4CAF50; /* Verde */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal-buttons button:hover {
+    background-color: #45a049;
+}
+
+.modal-buttons button:last-child {
+    background-color: #f44336; /* Vermelho */
+}
+
+.modal-buttons button:last-child:hover {
+    background-color: #da190b;
+}
+
+
+/* Modal container */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal content */
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+.modal-content i.fas.fa-edit {
+    font-size: 16px;
+    color: #007BFF;
+}
+
+.modal-content i.fas.fa-edit:hover {
+    color: #0056b3;
+}
+
+
+/* Close button */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.success-message {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    display: none;
+}
+
+.error-message {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    display: none;
+}

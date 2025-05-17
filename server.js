@@ -1,106 +1,117 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const db = require('./database/database');
-const app = express();
-const port = 3000;
+const mariadb = require('mariadb');
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose()
 
-//Rota para o banco de dados
-const db = new sqlite3.Database('./database/database.db', (err) =>
-{
-if (err) {
-    console.error('Erro ao abrir o banco de dados:', err.message);
-} else {
-    console.log('Conectado ao banco de dados SQLite.');
-}
+const app = express();
+const port = process.env.PORT || 3000; // Adapta para ambientes em nuvem
+
+// Configura conexão com MariaDB
+const pool = mariadb.createPool({
+    host: 'localhost',
+    user: 'root',
+    password: 'PI-DRP03',
+    database: 'cadastro_alunos',
+    connectionLimit: 5
 });
 
-
-// Configura o Express para servir arquivos estáticos
+// Middleware para servir arquivos estáticos
 app.use(express.static(path.join(__dirname)));
+app.use(bodyParser.json());
 
-// Adicione esta rota para servir o index.html
+// Rota para servir o index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Adicione middleware para analisar o corpo das requisições em formato JSON
-app.use(bodyParser.json());
-
-// Cria novo aluno
-app.post('/alunos', (req, res) => {
-    const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
-    db.run(`INSERT INTO alunos (nome, email, telefone, sexo, dataNascimento, faixa, grau, plano) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano],
-        function(err) {
-            if (err) {
-                return res.status(400).json({ error: err.message });
-            }
-            res.status(201).json({ id: this.lastID });
-        }
-    );
-});
-
-// Lê todos os alunos ou filtra por nome, retornando apenas id e nome
-app.get('/alunos', (req, res) => {
-    const nome = req.query.nome;
-    let sql = `SELECT id, nome FROM alunos`;
-    let params = [];
-
-    // Adiciona o filtro de nome caso ele exista e não seja uma string vazia
-    if (nome && nome.trim() !== '') {
-        sql += ` WHERE nome LIKE ?`;
-        params.push(`%${nome}%`);
+// Criar novo aluno
+app.post('/alunos', async (req, res) => {
+    try {
+        const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
+        const conn = await pool.getConnection();
+        const result = await conn.query(`
+            INSERT INTO alunos (nome, email, telefone, sexo, dataNascimento, faixa, grau, plano)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano]
+        );
+        conn.release();
+        res.status(201).json({ id: result.insertId, message: "Aluno criado com sucesso!" });
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno no servidor", details: err.message });
     }
+});
 
-    db.all(sql, params, (err, rows) => {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
+// Buscar todos os alunos ou por nome
+app.get('/alunos', async (req, res) => {
+    try {
+        const nome = req.query.nome;
+        const conn = await pool.getConnection();
+        const sql = nome && nome.trim() !== '' ? 
+            `SELECT id, nome FROM alunos WHERE LOWER(nome) LIKE LOWER(?)` : 
+            `SELECT id, nome FROM alunos`;
+        const params = nome ? [`%${nome}%`] : [];
+        const rows = await conn.query(sql, params);
+        conn.release();
         res.json({ data: rows });
-    });
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno no servidor", details: err.message });
+    }
 });
 
-
-// Lê um aluno específico pelo ID
-app.get('/alunos/:id', (req, res) => {
-    const id = req.params.id;
-    db.get(`SELECT * FROM alunos WHERE id = ?`, [id], (err, row) => {
-        if (err) {
-            return res.status(400).json({ error: err.message });
+// Buscar um aluno pelo ID
+app.get('/alunos/:id', async (req, res) => {
+    try {
+        const conn = await pool.getConnection();
+        const aluno = await conn.query(`SELECT * FROM alunos WHERE id = ?`, [req.params.id]);
+        conn.release();
+        if (aluno.length > 0) {
+            res.json({ data: aluno[0] });
+        } else {
+            res.status(404).json({ error: "Aluno não encontrado" });
         }
-        res.json({ data: row });
-    });
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno no servidor", details: err.message });
+    }
 });
 
-// Atualiza um aluno pelo ID
-app.put('/alunos/:id', (req, res) => {
-    const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
-    const id = req.params.id;
-    db.run(`UPDATE alunos SET nome = ?, email = ?, telefone = ?, sexo = ?, dataNascimento = ?, faixa = ?, grau = ?, plano = ? WHERE id = ?`,
-        [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, id],
-        function(err) {
-            if (err) {
-                return res.status(400).json({ error: err.message });
-            }
-            res.json({ message: 'Aluno atualizado com sucesso' });
+// Atualizar um aluno pelo ID
+app.put('/alunos/:id', async (req, res) => {
+    try {
+        const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano } = req.body;
+        const conn = await pool.getConnection();
+        const result = await conn.query(`
+            UPDATE alunos SET nome = ?, email = ?, telefone = ?, sexo = ?, dataNascimento = ?, faixa = ?, grau = ?, plano = ?
+            WHERE id = ?`,
+            [nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, req.params.id]
+        );
+        conn.release();
+        if (result.affectedRows > 0) {
+            res.json({ message: "Aluno atualizado com sucesso!" });
+        } else {
+            res.status(404).json({ error: "Aluno não encontrado" });
         }
-    );
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno no servidor", details: err.message });
+    }
 });
 
-// Deleta um aluno pelo ID
-app.delete('/alunos/:id', (req, res) => {
-    const id = req.params.id;
-    db.run(`DELETE FROM alunos WHERE id = ?`, [id], function(err) {
-        if (err) {
-            return res.status(400).json({ error: err.message });
+// Deletar um aluno pelo ID
+app.delete('/alunos/:id', async (req, res) => {
+    try {
+        const conn = await pool.getConnection();
+        const result = await conn.query(`DELETE FROM alunos WHERE id = ?`, [req.params.id]);
+        conn.release();
+        if (result.affectedRows > 0) {
+            res.json({ message: "Aluno deletado com sucesso!" });
+        } else {
+            res.status(404).json({ error: "Aluno não encontrado" });
         }
-        res.json({ message: 'Aluno deletado com sucesso' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: "Erro interno no servidor", details: err.message });
+    }
 });
 
+// Iniciar o servidor
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
 });
-
