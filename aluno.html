@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Aluno</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/aluno.css">
+</head>
+<body>
+    <header class="aluno-header">
+    <div class="profile-header">
+        <img id="alunoFotoHeader" src="/static/imagens/placeholder.png" alt="Foto do Aluno">
+        <h1>Bem-vindo, <span id="nomeAluno">Carregando...</span>!</h1>
+    </div>
+    <button id="btnLogout" class="btn-logout">Sair</button>
+</header>
+
+    <main class="aluno-container">
+    <div class="tab-buttons">
+        <button class="tab-button active" data-tab="info">Minhas Informações</button>
+        <button class="tab-button" data-tab="edit">Editar Dados</button>
+        <button class="tab-button" data-tab="history">Histórico de Presença</button>
+        <button class="tab-button" data-tab="schedule">Horários</button>
+        <button class="tab-button" data-tab="biblioteca">Biblioteca de Katas</button>
+    </div>
+
+    <div class="tab-content active" id="info">
+    
+    <section class="info-section">
+        <h2>Meus Dados</h2>
+        <div class="info-grid">
+            <div class="info-item"><strong>Plano:</strong> <span id="alunoPlano">...</span></div>
+            <div class="info-item"><strong>Faixa:</strong> <span id="alunoFaixa">...</span></div>
+            <div class="info-item"><strong>Grau:</strong> <span id="alunoGrau">...</span></div>
+            <div class="info-item"><strong>Email:</strong> <span id="alunoEmail">...</span></div>
+            <div class="info-item"><strong>Telefone:</strong> <span id="alunoTelefone">...</span></div>
+            <div class="info-item"><strong>Data de Nascimento:</strong> <span id="alunoDataNascimento">...</span></div>
+        </div>
+    </section>
+
+    <section class="checkin-section">
+        <h2>Controle de Frequência</h2>
+        <button id="btnCheckin" class="btn-checkin">Fazer Check-in de Hoje</button>
+    </section>
+    </div>
+
+    <div class="tab-content" id="edit">
+         <section class="edit-section">
+            <h2>Editar Meus Dados</h2>
+            <form id="formEditarDados">
+                <div class="form-group">
+                    <label for="editTelefone">Telefone:</label>
+                    <input type="tel" id="editTelefone">
+                </div>
+                <button type="submit" class="btn-alterar-senha">Salvar Telefone</button>
+            </form>
+        </section>
+
+        <section class="edit-section">
+    <h2>Alterar Minha Foto</h2>
+    <form id="formAlterarFoto">
+        <div class="form-group">
+            <label for="novaFoto">Escolher nova foto:</label>
+            <input type="file" id="novaFoto" name="foto" accept="image/*" required>
+        </div>
+        <button type="submit" class="btn-alterar-senha">Atualizar Foto</button>
+    </form>
+</section>
+
+        <section class="password-section">
+            <h2>Alterar Minha Senha</h2>
+            <form id="formAlterarSenha">
+                <div class="form-group">
+                    <label for="senhaAntiga">Senha Atual:</label>
+                    <input type="password" id="senhaAntiga" required>
+                </div>
+                <div class="form-group">
+                    <label for="novaSenha">Nova Senha:</label>
+                    <input type="password" id="novaSenha" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirmarNovaSenha">Confirmar Nova Senha:</label>
+                    <input type="password" id="confirmarNovaSenha" required>
+                </div>
+                <button type="submit" class="btn-alterar-senha">Salvar Nova Senha</button>
+            </form>
+        </section>
+    </div>
+
+    <div class="tab-content" id="history">
+        <section class="history-section">
+            <h2>Meu Histórico de Presença</h2>
+            <ul id="listaCheckins">
+                <li>Carregando histórico...</li>
+            </ul>
+        </section>
+    </div>
+
+    <div id="schedule" class="tab-content">
+    <section class="schedule-section">
+        <h2>Grade de Horários</h2>
+        <div id="gradeHorariosAluno" class="schedule-grid">
+            <!-- A grade de horários será gerada aqui pelo JavaScript -->
+            </div>
+        </section>
+        <!-- === Conteúdo da Aba "Biblioteca de Katas" === -->
+    </div> <div id="biblioteca" class="tab-content">
+    <section class="kata-section">
+        <h2>Biblioteca de Técnicas</h2>
+        <div id="bibliotecaContainer" class="kata-library">
+            <p>Carregando biblioteca...</p>
+            <!-- A biblioteca interativa será gerada aqui pelo JavaScript -->
+        </div>
+    </section>
+    </div>  
+</main>
+
+<!-- Estrutura do Modal dos katas-->
+ <div id="kataModal" class="modal-kata">
+    <div class="modal-kata-content">
+        <header class="modal-kata-header">
+            <h2 id="modalKataTitle">Posições</h2>
+            <button id="modalKataCloseBtn" class="modal-kata-close">&times;</button>
+        </header>
+        <main id="modalKataBody" class="modal-kata-body">
+            <!-- As posições do kata serão inseridas aqui pelo JavaScript -->
+        </main>
+    </div>
+</div>
+
+    <script type="module" src="/static/js/aluno.js"></script>
+</body>
+</html>

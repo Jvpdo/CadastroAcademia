@@ -1,0 +1,362 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+}
+
+.aluno-header {
+    background-color: #343a40;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.aluno-header h1 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.btn-logout {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-logout:hover {
+    background-color: #c82333;
+}
+
+.aluno-container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.info-section h2, .checkin-section h2 {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+}
+
+.info-item strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #495057;
+}
+
+.checkin-section {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.btn-checkin {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.btn-checkin:hover {
+    background-color: #0056b3;
+}
+
+/* /static/aluno.css */
+
+.tab-buttons {
+    display: flex;
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 20px;
+}
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    font-size: 1em;
+    font-weight: bold;
+    color: #555;
+    border-bottom: 3px solid transparent;
+}
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+.tab-content {
+    display: none; /* Esconde todas as abas por padrão */
+}
+.tab-content.active {
+    display: block; /* Mostra apenas a aba ativa */
+}
+.edit-section {
+    margin-bottom: 40px;
+}
+
+/* aba de check-in */
+.history-section {
+    margin-top: 40px;
+}
+
+#listaCheckins {
+    list-style: none;
+    padding: 0;
+    max-height: 300px; /* Altura máxima com barra de rolagem */
+    overflow-y: auto; /* Adiciona barra de rolagem se a lista for grande */
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+}
+
+#listaCheckins li {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+#listaCheckins li:last-child {
+    border-bottom: none;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espaçamento entre a foto e o nome */
+}
+
+#alunoFotoHeader {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%; /* Deixa a foto redonda */
+    object-fit: cover;   /* Garante que a foto preencha o círculo sem distorcer */
+    border: 2px solid #fff;
+}
+
+/* Estilos para a Biblioteca de Katas */
+.kata-library .categoria-container {
+    margin-bottom: 25px;
+}
+.kata-library .categoria-title {
+    font-size: 1.6em;
+    color: #343a40;
+    border-bottom: 3px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.kata-library .faixa-accordion .faixa-header {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 15px;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.kata-library .faixa-header::after {
+    content: '\25B6'; /* Seta para a direita */
+    font-size: 0.8em;
+    transition: transform 0.3s;
+}
+
+.kata-library .faixa-header.active::after {
+    transform: rotate(90deg); /* Gira a seta para baixo */
+}
+
+.kata-library .faixa-content {
+    padding: 0 15px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+}
+
+.kata-library .grau-container {
+    margin: 15px 0;
+    border-left: 3px solid #007bff;
+    padding-left: 15px;
+}
+
+.kata-library .grau-title {
+    font-size: 1.1em;
+    font-style: italic;
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.kata-library .grupo-title {
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.kata-library .posicao-item {
+    padding: 5px 0;
+}
+
+.kata-library .posicao-item a {
+    text-decoration: none;
+    color: #0056b3;
+}
+
+.kata-library .posicao-item a:hover {
+    text-decoration: underline;
+}
+
+.kata-library .posicao-item i {
+    margin-right: 8px;
+    color: #dc3545;
+}
+
+/* Estilo para cada cabeçalho clicável (seja faixa, grau, etc.) */
+.accordion-header {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 12px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+/* Adiciona a seta (triângulo) nos itens que têm conteúdo dentro */
+.accordion-header.has-children::after {
+    content: '\25B6'; /* Código unicode para a seta para a direita ▶ */
+    font-size: 0.8em;
+    color: #007bff;
+    transition: transform 0.3s ease-out;
+}
+
+/* Gira a seta quando o item está ativo (aberto) */
+.accordion-header.has-children.active::after {
+    transform: rotate(90deg);
+}
+
+/* O contêiner do conteúdo, que começa escondido */
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-out, padding 0.2s ease-out;
+    padding: 0 15px; /* Padding vertical zero quando fechado */
+    border-left: 2px solid #007bff;
+    margin-left: 10px;
+}
+
+.accordion-header.active + .accordion-content {
+    padding: 15px; /* Adiciona padding quando aberto */
+}
+
+
+/* Estilos de recuo para cada nível de aninhamento */
+.accordion-level-2 {
+    margin-left: 20px;
+}
+.accordion-level-3 {
+    margin-left: 40px;
+}
+
+/* --- ESTILOS PARA O MODAL DE KATAS --- */
+
+/* O fundo escurecido que cobre a tela inteira */
+.modal-kata {
+    display: none; /* Começa escondido */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px); /* Efeito de desfoque no fundo */
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* O conteúdo do modal (a caixa branca) */
+.modal-kata-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    animation: slideIn 0.4s ease-out;
+}
+
+/* Cabeçalho do modal */
+.modal-kata-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-kata-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #333;
+}
+
+/* Botão de fechar */
+.modal-kata-close {
+    background: none;
+    border: none;
+    font-size: 2em;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    padding: 0 10px;
+    line-height: 1;
+}
+.modal-kata-close:hover {
+    color: #333;
+}
+
+/* Corpo do modal, onde as posições ficarão */
+.modal-kata-body {
+    padding: 20px;
+    max-height: 60vh; /* Altura máxima com barra de rolagem */
+    overflow-y: auto;
+}
+
+/* Animações simples para o modal aparecer */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}

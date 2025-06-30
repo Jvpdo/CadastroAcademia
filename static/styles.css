@@ -1,3 +1,28 @@
+/* Estilos para as mensagens de feedback */
+.message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.message.success {
+    background-color: #28a745; /* Verde */
+}
+
+.message.error {
+    background-color: #dc3545; /* Vermelho */
+}
+
 /* Estilos para a Caixa Flutuante */
 .flutuante {
     display: none;
@@ -13,30 +38,16 @@
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
 }
 
-.close {
-    position: absolute;
-    right: 10px;
-    top: 10px;
-    cursor: pointer;
-}
-
 body {
     font-family: Arial, sans-serif;
+    background-image: url('imagens/background.jpg');
+    background-size: cover;
     background-color: #f2f2f2;
     margin: 0;
     padding: 20px;
 }
 
-body {
-    font-family: Arial, sans-serif;
-    background-image: url('imagens/background.jpg');
-    background-size: cover;
-    margin: 0;
-    padding: 20px;
-}
-
 table {
-    margin-top: 0;
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
@@ -173,12 +184,17 @@ thead {
     background-color: #0069d9;
 }
 
-/*ESTILIZAÇÃO DO MODAL
+/*ESTILIZAÇÃO DO MODAL */
 
 /* Contêiner Flexível Principal */
-#modalBody {
-    display: flex;
+
+
+.modal-body {
+    display: flex; 
+    flex-wrap: wrap;
+    gap: 30px;
     margin-top: 20px;
+    justify-content: center;
 }
 
 /* Coluna da Esquerda: Informações e Botões */
@@ -205,7 +221,7 @@ thead {
 /* Coluna da Direita: Imagem */
 .modal-content-right {
     flex: 0 0 auto;
-    width: 200px;
+    width: 250px;
 }
 
 /* Caixa de Proporção */
@@ -235,13 +251,13 @@ thead {
     }
 
     .modal-content-left {
-        margin-right: 0;
-        flex: 1 1 100%;
+    flex: 0 1 450px; /* <-- ALTERADO: Não cresce, base de 450px */
+    min-width: 300px;
     }
 
     .modal-content-right {
-        margin-top: 20px;
-        flex: 1 1 100%;
+    flex: 0 1 250px; /* <-- ALTERADO: Não cresce, base de 250px */
+    min-width: 200px;
     }
 
     #imageContainer img {
@@ -288,10 +304,12 @@ thead {
 /* Modal content */
 .modal-content {
     background-color: #fefefe;
-    margin: 15% auto;
+    margin: 10% auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%; /* Could be more or less, depending on screen size */
+    width: 80%; 
+    max-width: 800px; /* Aumentado para acomodar o layout */
+    border-radius: 8px; /* Adicionado para consistência */
 }
 .modal-content i.fas.fa-edit {
     font-size: 16px;
@@ -302,6 +320,28 @@ thead {
     color: #0056b3;
 }
 
+/* botao senha */
+
+.password-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-container input {
+    width: 40%;
+    padding-right: 40px; /* Deixa espaço para o ícone */
+    box-sizing: border-box; /* Garante que o padding não aumente a largura total */
+}
+
+.password-container .fa-eye,
+.password-container .fa-eye-slash {
+    position: absolute;
+    top: 50%;
+    right: 340px;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #888;
+}
 
 /* Close button */
 .close {
@@ -309,6 +349,10 @@ thead {
     float: right;
     font-size: 28px;
     font-weight: bold;
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    cursor: pointer;
 }
 
 .close:hover,
@@ -339,3 +383,499 @@ thead {
     border-radius: 4px;
     display: none;
 }
+
+/* Ajuste para a foto do aluno no modal */
+#alunoFoto {
+    width: 100%;  /* Faz a imagem ocupar toda a largura do seu contêiner */
+    height: 80%; /* Faz a imagem ocupar toda a altura do seu contêiner */
+
+    /* A propriedade mágica:
+       'contain' garante que a imagem inteira seja visível, 
+       mantendo a proporção, sem cortar. */
+    object-fit: contain; 
+}
+
+/* Estilos para o Gerenciador de Horários */
+.schedule-manager {
+    background-color: #f8f9fa;
+    padding: 20px;
+    margin-top: 30px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.form-horario {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+
+.tabela-horarios {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabela-horarios th, .tabela-horarios td {
+    text-align: left;
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tabela-horarios th {
+    background-color: #e9ecef;
+}
+
+.btn-delete-horario {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn-delete-horario:hover {
+    background-color: #c82333;
+}
+
+/* Estilos para o Painel de Admin */
+.admin-header {
+    background-color: #343a40;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.admin-header h1 {
+    margin: 0;
+}
+
+.admin-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+/* Estilos para a navegação por abas */
+.tab-buttons {
+    display: flex;
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 20px;
+}
+.tab-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #f9fd00;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+.tab-content {
+    display: none; /* Esconde todas as abas por padrão */
+}
+.tab-content.active {
+    display: block; /* Mostra apenas a aba ativa */
+}
+
+/* Container de busca de alunos */
+.search-container {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+/* formato tabela horarios */
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 colunas para os dias da semana */
+    gap: 10px;
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.day-column {
+    background-color: #2c2c2c;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.day-header {
+    text-align: center;
+    color: #ffc107;
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #444;
+    padding-bottom: 10px;
+}
+
+.time-slot {
+    background-color: #3e3e3e;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+    position: relative;
+}
+
+.time-slot .horario {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.time-slot .descricao {
+    font-size: 1em;
+    color: #f0f0f0;
+    margin-top: 5px;
+}
+
+.time-slot .btn-delete-horario {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: transparent;
+    border: none;
+    color: #ff4d4d;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.time-slot .btn-delete-horario:hover {
+    color: #ff0000;
+}
+
+/* NO gi adicionado */
+/* Estilos para o cabeçalho do dia na grade de horários */
+.day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #ffc107;
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #444;
+    padding-bottom: 10px;
+    min-height: 50px; /* ADICIONE ESTA LINHA */
+}
+
+.day-subtitle {
+    font-size: 0.9em;
+    font-weight: normal;
+    color: #e65252; /* Um tom de vermelho similar ao da imagem */
+    margin-top: 4px;
+}
+
+/* Gerenciador de Katas */
+.kata-manager {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.form-kata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.form-kata .form-group {
+    flex: 1 1 200px; /* Flexbox para responsividade */
+}
+
+.form-kata .form-group.full-width {
+    flex-basis: 100%;
+}
+
+.form-kata textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+/* Lista de Katas Cadastrados */
+
+.kata-manager {
+    background-color: #fdfdff;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.form-kata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px 20px;
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 25px;
+}
+
+.form-kata .form-group {
+    flex: 1 1 calc(33.333% - 20px);
+    display: flex;
+    flex-direction: column;
+}
+
+.form-kata .form-group.full-width {
+    flex-basis: 100%;
+}
+
+.kata-library-view {
+    margin-top: 20px;
+}
+
+.kata-categoria-container {
+    margin-bottom: 30px;
+}
+
+.kata-categoria-title {
+    font-size: 1.8em;
+    color: #333;
+    border-bottom: 3px solid #007bff;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.kata-faixa-container {
+    margin-bottom: 25px;
+    padding-left: 20px;
+}
+
+.kata-faixa-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 15px;
+}
+
+.kata-grau-container {
+    margin-bottom: 20px;
+    padding-left: 20px;
+}
+
+.kata-grau-title {
+    font-size: 1.2em;
+    font-style: italic;
+    color: #555;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.kata-grupo-title {
+    font-weight: bold;
+    color: #333;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.kata-posicao-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-left: 15px;
+    border-left: 3px solid #007bff;
+    background-color: #f9f9f9;
+}
+
+.btn-delete-kata {
+    background-color: transparent;
+    border: none;
+    color: #dc3545;
+    font-size: 1.4em;
+    cursor: pointer;
+    line-height: 1;
+}
+
+/* Adiciona o cursor de clique nas linhas da tabela de alunos */
+#tabelaEstudantes tr {
+    cursor: pointer;
+}
+
+/* Opcional: Adiciona um efeito de destaque ao passar o mouse */
+#tabelaEstudantes tr:hover {
+    background-color: #b9b6b6; /* Um cinza bem claro */
+}
+
+/* Define o tamanho e formato da foto do aluno na tabela */
+.foto-presenca {
+    width: 45px;          /* Define uma largura fixa */
+    height: 45px;         /* Define uma altura fixa */
+    border-radius: 50%;   /* Deixa a foto redonda, como no cabeçalho */
+    object-fit: cover;    /* Garante que a foto cubra o espaço sem distorcer, cortando o excesso */
+    border: 2px solid #eee; /* Uma borda sutil para dar acabamento */
+    display: block;       /* Evita espaços extras indesejados abaixo da imagem */
+    margin: 0 auto;       /* Centraliza a foto na célula da tabela */
+}
+
+/* --- MODAL DE HISTÓRICO (#historyModal) --- */
+.modal-kata {
+    display: none;
+    position: fixed; /* <-- CORREÇÃO BUG 2: Faz o modal flutuar */
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+}
+.modal-kata-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+.modal-kata-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+}
+.modal-kata-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+}
+.modal-kata-close {
+    background: none;
+    border: none;
+    font-size: 2em;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+}
+.modal-kata-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* --- GERENCIAMENTO DE CHECK-IN NO MODAL --- */
+.lista-historico-modal.com-delete li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+.btn-delete-checkin {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-size: 1.5em;
+    cursor: pointer;
+    opacity: 0.5;
+}
+.btn-delete-checkin:hover {
+    opacity: 1;
+}
+.add-checkin-form {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+.form-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.btn-add-checkin {
+    padding: 8px 15px;
+    background-color: #28a745;
+}
+.btn-secondary {
+    background-color: #6c757d;
+    padding: 10px 15px;
+    width: 50%;
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* --- PAGINAÇÃO E BUSCA NO MODAL DE HISTÓRICO --- */
+.history-search-area, .history-pagination {
+    padding: 15px 20px;
+    background-color: #f8f9fa;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.history-search-area { border-bottom: 1px solid #ddd; }
+.history-pagination { border-top: 1px solid #ddd; justify-content: space-between; }
+.history-pagination #historyPageInfo { font-weight: bold; }
+
+/* --- ESTILOS PARA O MENU SANFONADO (ACORDEÃO) --- */
+
+/* Estilo para cada cabeçalho clicável (seja faixa, grau, etc.) */
+.accordion-header {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 12px 15px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+/* Adiciona a seta (triângulo) nos itens que têm conteúdo dentro */
+.accordion-header.has-children::after {
+    content: '\25B6'; /* Código unicode para a seta para a direita ▶ */
+    font-size: 0.8em;
+    color: #007bff;
+    transition: transform 0.3s;
+}
+
+/* Gira a seta quando o item está ativo (aberto) */
+.accordion-header.has-children.active::after {
+    transform: rotate(90deg);
+}
+
+/* O contentor do conteúdo, que começa escondido */
+.accordion-content {
+    display: none; /* Alterado de max-height: 0 para esconder o conteúdo */
+    max-height: 350px; /* Define uma altura máxima fixa */
+    overflow-y: auto;  /* Adiciona a barra de rolagem se o conteúdo for maior */
+    padding: 10px 15px; /* Padding para quando estiver visível */
+    border-left: 2px solid #e0e0e0;
+    margin-left: 10px;
+    margin-top: -5px; /* Ajuste para conectar visualmente ao header */
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+/* Mostra o conteúdo quando o cabeçalho está ativo */
+.accordion-header.active + .accordion-content {
+    display: block; /* Revela o bloco de conteúdo instantaneamente */
+}
+
+/* Estilos de recuo para cada nível do menu */
+.accordion-level-2 { margin-left: 20px; }
+.accordion-level-3 { margin-left: 40px; }
