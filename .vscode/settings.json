@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "sqltools.connections": [
         {
             "previewLimit": 50,
@@ -9,3 +10,11 @@
     ],
     "sqltools.useNodeRuntime": true
 }
+=======
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  }
+}
+>>>>>>> 04ef291 (implementando react)
