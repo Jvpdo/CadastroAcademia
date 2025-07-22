@@ -182,23 +182,57 @@ app.get('/alunos', protegerRota, async (req, res) => {
     }
     let conn;
     try {
-        const { nome } = req.query; // Pega o 'nome' da query string (ex: /alunos?nome=joao)
+        // Pega os parâmetros da URL: ?nome=joao&page=1&limit=10
+        const { nome } = req.query;
+        const page = parseInt(req.query.page) || 1; // Página atual, padrão é 1
+        const limit = parseInt(req.query.limit) || 10; // 10 alunos por página, como você pediu
+        const offset = (page - 1) * limit; // Calcula o deslocamento para a consulta SQL
+
         conn = await pool.getConnection();
 
-        // Se um nome foi passado na query, a consulta usa WHERE. Senão, busca todos.
-        const sql = nome && nome.trim() !== '' 
-            ? `SELECT id, nome, email, telefone, plano FROM alunos WHERE LOWER(nome) LIKE LOWER(?)` 
-            : `SELECT id, nome, email, telefone, plano FROM alunos`;
-        
-        const params = nome ? [`%${nome}%`] : []; // O parâmetro só é adicionado se o nome existir
+        // Constrói a cláusula WHERE dinamicamente para a busca
+        let whereClause = '';
+        let params = [];
+        if (nome && nome.trim() !== '') {
+            whereClause = 'WHERE LOWER(nome) LIKE LOWER(?)';
+            params.push(`%${nome}%`);
+        }
 
-        const rows = await conn.query(sql, params);
+        // 1. Query para contar o TOTAL de alunos que correspondem à busca
+        const countQuery = `SELECT COUNT(*) as total FROM alunos ${whereClause}`;
+        const [totalResult] = await conn.query(countQuery, params);
+        const totalItems = totalResult.total;
+        const totalPages = Math.ceil(totalItems / limit);
+
+        // 2. Query para buscar os alunos da PÁGINA ATUAL
+        const dataQuery = `
+            SELECT id, nome, email, telefone, plano 
+            FROM alunos 
+            ${whereClause} 
+            ORDER BY nome ASC 
+            LIMIT ? OFFSET ?
+        `;
+        // Adiciona os parâmetros de paginação
+        params.push(limit, offset);
+
+        const rows = await conn.query(dataQuery, params);
         conn.release();
-        res.json(rows); // Retorna os alunos encontrados
+
+        // Retorna tanto os dados quanto as informações de paginação
+        res.json({
+            alunos: rows,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                totalItems: totalItems,
+            }
+        });
 
     } catch (err) {
-        console.error("Erro ao buscar alunos:", err.message);
+        console.error("Erro ao buscar alunos com paginação:", err.message);
         res.status(500).json({ error: "Erro interno no servidor", details: err.message });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -465,7 +499,11 @@ app.get('/api/presenca/hoje', protegerRota, async (req, res) => {
     let conn;
     try {
         conn = await pool.getConnection();
-        const hoje = new Date().toISOString().slice(0, 10); // Formato YYYY-MM-DD
+        const agora = new Date();
+        const ano = agora.getFullYear();
+        const mes = String(agora.getMonth() + 1).padStart(2, '0'); // Meses são de 0-11
+        const dia = String(agora.getDate()).padStart(2, '0');
+        const hoje = `${ano}-${mes}-${dia}`;
 
         // Query com JOIN para pegar o nome e foto do aluno junto com o check-in
         const sql = `
@@ -676,13 +714,13 @@ app.post('/api/horarios', protegerRota, async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado.' });
     }
-    const { dia_semana, horario_inicio, horario_fim, descricao } = req.body;
+    const { dia_semana, horario_inicio, horario_fim, descricao, tipo_aula } = req.body;
     let conn;
     try {
         conn = await pool.getConnection();
         const result = await conn.query(
-            'INSERT INTO horarios (dia_semana, horario_inicio, horario_fim, descricao) VALUES (?, ?, ?, ?)',
-            [dia_semana, horario_inicio, horario_fim, descricao]
+            'INSERT INTO horarios (dia_semana, horario_inicio, horario_fim, descricao, tipo_aula) VALUES (?, ?, ?, ?, ?)',
+            [dia_semana, horario_inicio, horario_fim, descricao, tipo_aula || 'Com Kimono']
         );
         res.status(201).json({ id: result.insertId, message: 'Horário criado com sucesso!' });
     } catch (err) {
@@ -727,6 +765,100 @@ app.delete('/api/horarios/:id', protegerRota, async (req, res) => {
     } catch (err) {
         console.error("Erro ao deletar horário:", err);
         res.status(500).json({ error: 'Erro ao deletar horário.' });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Rota para ATUALIZAR um horário existente (Apenas Admin)
+app.put('/api/horarios/:id', protegerRota, async (req, res) => {
+    if (req.usuario.permissao !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado.' });
+    }
+
+    const { id } = req.params;
+    // ===== CORREÇÃO AQUI: Agora aceitamos os novos campos =====
+    const { descricao, horario_inicio, horario_fim, tipo_aula } = req.body; 
+
+    if (!descricao || !horario_inicio || !horario_fim || !tipo_aula) {
+        return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+    }
+
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const result = await conn.query(
+            // A query agora atualiza todos os campos
+            'UPDATE horarios SET descricao = ?, horario_inicio = ?, horario_fim = ?, tipo_aula = ? WHERE id = ?',
+            [descricao, horario_inicio, horario_fim, tipo_aula, id]
+        );
+
+        conn.release();
+
+        if (result.affectedRows > 0) {
+            res.json({ message: 'Horário atualizado com sucesso!' });
+        } else {
+            res.status(404).json({ error: 'Horário não encontrado.' });
+        }
+    } catch (err) {
+        console.error("Erro ao atualizar horário:", err);
+        res.status(500).json({ error: 'Erro interno no servidor.' });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Rota para BUSCAR todos os horários fixos da grade
+app.get('/api/grade-horarios', protegerRota, async (req, res) => {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const rows = await conn.query('SELECT horario FROM grade_horarios ORDER BY horario ASC');
+        // Enviamos apenas um array de strings, ex: ["08:00", "09:00"]
+        res.json(rows.map(r => r.horario));
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao buscar horários da grade." });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Rota para ADICIONAR um novo horário fixo
+app.post('/api/grade-horarios', protegerRota, async (req, res) => {
+    if (req.usuario.permissao !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    const { horario } = req.body;
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        await conn.query('INSERT INTO grade_horarios (horario) VALUES (?)', [horario]);
+        res.status(201).json({ message: 'Horário adicionado à grade com sucesso!' });
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao adicionar horário à grade." });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Rota para DELETAR um horário fixo
+app.delete('/api/grade-horarios/:horario', protegerRota, async (req, res) => {
+    if (req.usuario.permissao !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    // Usamos o próprio horário como um ID, já que ele é único
+    const { horario } = req.params;
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const result = await conn.query('DELETE FROM grade_horarios WHERE horario = ?', [horario]);
+        if (result.affectedRows > 0) {
+            res.json({ message: 'Horário removido da grade com sucesso!' });
+        } else {
+            res.status(404).json({ error: 'Horário não encontrado na grade.' });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao remover horário da grade." });
     } finally {
         if (conn) conn.release();
     }

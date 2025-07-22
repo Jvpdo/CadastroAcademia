@@ -6,6 +6,7 @@
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "mariadb": "^2.5.5",
-    "multer": "^2.0.1"
+    "multer": "^2.0.1",
+    "react-native-mask-input": "^1.2.3"
   }
 }
