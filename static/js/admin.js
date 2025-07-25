@@ -472,10 +472,11 @@ function populateKataFormSelects(kataData) {
 // --- Schedule Handlers ---
 async function loadHorarios() {
     try {
+        
         const horarios = await api.fetchHorarios();
         renderizarGradeDeHorarios(elements.scheduleGrid, horarios, true); // Correto!
     } catch (error) {
-        ui.showMessage(error.message, 'error');
+        showMessage(error.message, 'error');
     }
 }
 
