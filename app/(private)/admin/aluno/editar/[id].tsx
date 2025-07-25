@@ -12,9 +12,11 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { StyledPicker } from '@/components/StyledPicker';
 import MaskInput from 'react-native-mask-input';
+import { Feather } from '@expo/vector-icons';
 
 // Arrays com as opções para os seletores
 const sexos = [ { label: 'Masculino', value: 'masculino' }, { label: 'Feminino', value: 'feminino' } ];
@@ -38,12 +40,17 @@ export default function EditarAlunoScreen() {
   const [grau, setGrau] = useState('');
   const [plano, setPlano] = useState('');
   
+  // Estado para a nova senha
+  const [novaSenha, setNovaSenha] = useState('');
+  
+  // Estado para visibilidade da senha
+  const [isNovaSenhaVisivel, setIsNovaSenhaVisivel] = useState(false);
+
   // Estados de controle da tela
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Agora será usado
+  const [error, setError] = useState<string | null>(null);
 
-  // Busca os dados do aluno para preencher o formulário
   const fetchAluno = useCallback(async () => {
     if (!alunoId) return;
     try {
@@ -73,6 +80,11 @@ export default function EditarAlunoScreen() {
   }, [fetchAluno]);
 
   const handleSalvarEdicao = async () => {
+    if (novaSenha && novaSenha.length < 6) {
+      Alert.alert('Erro', 'A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
     const formatarDataParaAPI = (data: string) => {
       if (data.length !== 8) return null;
       const dia = data.substring(0, 2);
@@ -87,7 +99,11 @@ export default function EditarAlunoScreen() {
       return;
     }
 
-    const alunoData = { nome, email, telefone, sexo, dataNascimento: dataFormatada, faixa, grau, plano };
+    const alunoData: any = { nome, email, telefone, sexo, dataNascimento: dataFormatada, faixa, grau, plano };
+
+    if (novaSenha) {
+      alunoData.senha = novaSenha;
+    }
 
     setIsSaving(true);
     try {
@@ -101,13 +117,10 @@ export default function EditarAlunoScreen() {
     }
   };
 
-  // Renderização condicional para loading e erro
   if (isLoading) {
     return <View style={styles.centered}><ActivityIndicator size="large" /><Text>Carregando dados...</Text></View>;
   }
 
-  // ===== CORREÇÃO AQUI =====
-  // Adicionamos a verificação de erro para usar a variável
   if (error) {
     return (
       <View style={styles.centered}>
@@ -132,6 +145,24 @@ export default function EditarAlunoScreen() {
             <StyledPicker label="Grau" items={graus} onValueChange={setGrau} value={grau} />
             <StyledPicker label="Plano" items={planos} onValueChange={setPlano} value={plano} />
 
+            {/* ===== CAMPO DE SENHA ATUALIZADO COM ÍCONE ===== */}
+            <Text style={styles.passwordLabel}>Alterar Senha (opcional)</Text>
+            
+            {/* Campo Nova Senha */}
+            <View style={styles.passwordContainer}>
+              <TextInput
+                  style={styles.inputIcon}
+                  placeholder="Nova Senha"
+                  value={novaSenha}
+                  onChangeText={setNovaSenha}
+                  secureTextEntry={!isNovaSenhaVisivel} // Controlado pelo estado
+                  autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setIsNovaSenhaVisivel(!isNovaSenhaVisivel)}>
+                  <Feather name={isNovaSenhaVisivel ? 'eye' : 'eye-off'} size={24} color="gray" style={styles.icon} />
+              </TouchableOpacity>
+            </View>
+            
             <View style={styles.buttonContainer}>
             {isSaving ? (
               <ActivityIndicator size="large" />
@@ -154,4 +185,34 @@ const styles = StyleSheet.create({
   input: { height: 45, borderColor: '#ccc', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, marginBottom: 15, backgroundColor: '#fff', fontSize: 16 },
   buttonContainer: { marginTop: 20 },
   errorText: { color: 'red', marginBottom: 15, textAlign: 'center' },
+  passwordLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    marginTop: 10,
+    borderTopColor: '#eee',
+    borderTopWidth: 1,
+    paddingTop: 15
+  },
+  // ===== NOVOS ESTILOS PARA O CAMPO DE SENHA COM ÍCONE =====
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 4,
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    height: 45,
+  },
+  inputIcon: {
+    flex: 1,
+    height: 45,
+    paddingHorizontal: 10,
+    fontSize: 16,
+  },
+  icon: {
+    paddingHorizontal: 10,
+  },
 });

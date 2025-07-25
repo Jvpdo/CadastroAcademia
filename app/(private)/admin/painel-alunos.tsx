@@ -37,58 +37,62 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [termoBusca, setTermoBusca] = useState(''); // O que o usuário digita
-  const [termoDebounced, setTermoDebounced] = useState(''); // O termo que será usado na busca, após a pausa
+  const [termoDebounced, setTermoDebounced] = useState(''); // O termo que será usado na busca
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Função para carregar os alunos da API
+  // Função centralizada para carregar os alunos da API.
   const carregarAlunos = useCallback(async (page: number, busca: string) => {
-    if (!isRefreshing) {
-    // Mostra o loading principal apenas na primeira carga
-    if (page === 1 && busca === '') setIsLoading(true);
-    }
-    setError(null);
     try {
       const data = await api.getAlunos(session, page, busca);
       setAlunos(data.alunos);
       setPagination(data.pagination);
     } catch (err: any) {
-      setError(err.message || 'Ocorreu um erro.');
-    } finally {
-      // Garante que o loading pare apenas na primeira carga
-      setIsLoading(false);
-      setIsRefreshing(false);
+      setError(err.message || 'Ocorreu um erro ao buscar alunos.');
     }
-  }, [session, isRefreshing]);
+  }, [session]);
 
-  // Efeito 1: Atualiza o termoDebounced 500ms após o usuário parar de digitar
+  // Efeito 1: Aplica "debounce" ao termo de busca.
   useEffect(() => {
     const handler = setTimeout(() => {
       setTermoDebounced(termoBusca);
+      setCurrentPage(1); // Sempre reseta para a página 1 ao fazer uma nova busca
     }, 500);
     return () => clearTimeout(handler);
   }, [termoBusca]);
 
-  // Efeito 2: Busca os dados na API sempre que a PÁGINA ou o TERMO DEBOUNCED mudam
+  // Efeito 2: Busca os dados na API quando a página ou o termo (debounced) mudam.
   useEffect(() => {
-    // Quando uma nova busca é finalizada (termoDebounced muda), voltamos para a página 1
-    if (termoBusca !== termoDebounced) {
-      if (currentPage !== 1) {
-        setCurrentPage(1);
-        return; // A mudança de página vai acionar este efeito novamente
-      }
-    }
-    carregarAlunos(currentPage, termoDebounced);
-  }, [currentPage, termoDebounced, termoBusca, carregarAlunos]);
+    const fetchData = async () => {
+      if (isRefreshing) return;
 
-  const onRefresh = useCallback(() => {
+      setIsLoading(true);
+      setError(null);
+      await carregarAlunos(currentPage, termoDebounced);
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [currentPage, termoDebounced, carregarAlunos, isRefreshing]);
+
+  // Função para o "puxar para atualizar" (pull-to-refresh)
+  const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    setTermoBusca(''); 
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    } else {
-      carregarAlunos(1, '');
-    }
-  }, [currentPage, carregarAlunos]);
+    setTermoBusca('');
+
+    await carregarAlunos(1, '');
+
+    if (currentPage !== 1) setCurrentPage(1);
+    if (termoDebounced !== '') setTermoDebounced('');
+
+    setIsRefreshing(false);
+  }, [carregarAlunos, currentPage, termoDebounced]); // CORREÇÃO: Adicionadas as dependências
+
+  // Handler para o botão "Tentar Novamente" em caso de erro
+  const tentarNovamente = useCallback(() => {
+    setError(null);
+    setIsLoading(true);
+    carregarAlunos(currentPage, termoDebounced).finally(() => setIsLoading(false));
+  }, [carregarAlunos, currentPage, termoDebounced]);
 
   // Funções para os botões de paginação
   const irParaPaginaAnterior = () => {
@@ -102,11 +106,10 @@ export default function HomeScreen() {
     }
   };
 
-  // Componente para renderizar cada item da lista (com link)
+  // Componente para renderizar cada item da lista
   const renderItem = ({ item }: { item: Aluno }) => (
-    // O <Link> envolve todo o item clicável
-        <Link href={{pathname: "/(private)/admin/aluno/[id]", params: { id: item.id }}}asChild>
-        <TouchableOpacity style={styles.itemContainer}>
+    <Link href={{ pathname: "/(private)/admin/aluno/[id]", params: { id: item.id } }} asChild>
+      <TouchableOpacity style={styles.itemContainer}>
         <View>
           <Text style={styles.itemNome}>{item.nome}</Text>
           <Text style={styles.itemEmail}>{item.email}</Text>
@@ -116,9 +119,9 @@ export default function HomeScreen() {
     </Link>
   );
 
-  // Componente para renderizar o rodapé com os botões de paginação
+  // Componente para renderizar o rodapé com a paginação
   const renderFooter = () => {
-    if (!pagination || pagination.totalPages <= 1) return null;
+    if (isLoading || !pagination || pagination.totalPages <= 1) return null;
 
     return (
       <View style={styles.paginationContainer}>
@@ -131,8 +134,8 @@ export default function HomeScreen() {
     );
   };
 
-  // Renderização condicional para loading e erro
-  if (isLoading) {
+  // Renderização condicional
+  if (isLoading && !isRefreshing && alunos.length === 0) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" />
@@ -140,18 +143,7 @@ export default function HomeScreen() {
       </View>
     );
   }
-  
-  if (error) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Erro ao carregar alunos:</Text>
-        <Text>{error}</Text>
-        <Button title="Tentar Novamente" onPress={() => carregarAlunos(1, termoBusca)} />
-      </View>
-    );
-  }
 
-  // Renderização principal da tela
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -164,136 +156,168 @@ export default function HomeScreen() {
           placeholder="Buscar aluno por nome..."
           value={termoBusca}
           onChangeText={setTermoBusca}
+          clearButtonMode="while-editing"
         />
       </View>
-      
-      <FlatList
-        data={alunos}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={() => (
-          <Text style={styles.listHeader}>Alunos Cadastrados ({pagination?.totalItems || 0})</Text>
-        )}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={() => (
-          <View style={styles.centeredEmpty}>
-            <Text>Nenhum aluno encontrado.</Text>
-            {termoBusca === '' && (
-              <Link href="/(private)/admin/cadastro" asChild>
-                <TouchableOpacity style={styles.linkButton}>
-                  <Text style={styles.linkText}>Cadastrar o primeiro aluno</Text>
-                </TouchableOpacity>
-              </Link>
-            )}
-          </View>
-        )}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} colors={['#007bff']} tintColor={'#007bff'} />
-        }
-      />
+
+      {error && !isRefreshing ? (
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>Ocorreu um erro:</Text>
+          <Text>{error}</Text>
+          <Button title="Tentar Novamente" onPress={tentarNovamente} />
+        </View>
+      ) : (
+        <FlatList
+          data={alunos}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={() => (
+            <Text style={styles.listHeader}>Alunos Cadastrados ({pagination?.totalItems || 0})</Text>
+          )}
+          ListFooterComponent={renderFooter}
+          ListEmptyComponent={() => (
+            !isLoading && (
+              <View style={styles.centeredEmpty}>
+                <Text>Nenhum aluno encontrado.</Text>
+                {termoBusca === '' && (
+                  <Link href="/(private)/admin/cadastro" asChild>
+                    <TouchableOpacity style={styles.linkButton}>
+                      <Text style={styles.linkText}>Cadastrar o primeiro aluno</Text>
+                    </TouchableOpacity>
+                  </Link>
+                )}
+              </View>
+            )
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={['#007bff']}
+              tintColor={'#007bff'}
+            />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
 
-// Adicionamos novos estilos para a busca
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f4f6f9',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-    backgroundColor: '#fff',
+    paddingTop: 24,
+    paddingBottom: 16,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e0e0e0',
+    elevation: 2,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#222',
   },
   searchContainer: {
-    backgroundColor: '#fff',
-    padding: 10,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#e6e6e6',
   },
   searchInput: {
-    height: 40,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    height: 44,
+    backgroundColor: '#f0f2f5',
+    borderRadius: 10,
     paddingHorizontal: 15,
     fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   list: {
     paddingHorizontal: 20,
+    paddingBottom: 30,
   },
   listHeader: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: '#333',
     marginTop: 20,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   itemContainer: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: '#ffffff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
   },
   itemNome: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#333',
   },
   itemEmail: {
     fontSize: 14,
-    color: '#666',
+    color: '#777',
+    marginTop: 2,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
+    backgroundColor: '#f4f6f9',
   },
   centeredEmpty: {
-    marginTop: 50,
+    marginTop: 60,
     alignItems: 'center',
   },
   errorText: {
-    color: 'red',
-    marginBottom: 10,
+    color: '#d9534f',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   linkButton: {
-    marginTop: 15,
+    marginTop: 16,
     backgroundColor: '#007bff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 10,
   },
   linkText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 15,
   },
-  paginationContainer: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingVertical: 20 
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    paddingHorizontal: 10,
+    paddingBottom: 30,
   },
-  pageInfo: { 
-    fontSize: 16, 
-    fontWeight: 'bold' 
+  pageInfo: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#444',
   },
 });

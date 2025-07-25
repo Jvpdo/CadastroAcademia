@@ -1,6 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,21 +10,23 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
-  Platform,
   ActivityIndicator,
   Image,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { StyledPicker } from '@/components/StyledPicker';
 import MaskInput from 'react-native-mask-input';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
-// ... (arrays de opções para os pickers continuam os mesmos) ...
+// Pickers
 const sexos = [
   { label: 'Masculino', value: 'masculino' },
   { label: 'Feminino', value: 'feminino' },
 ];
+
 const faixas = [
   { label: 'Branca', value: 'branca' },
   { label: 'Cinza', value: 'cinza' },
@@ -36,6 +38,7 @@ const faixas = [
   { label: 'Marrom', value: 'marrom' },
   { label: 'Preta', value: 'preta' },
 ];
+
 const graus = [
   { label: 'Nenhum Grau', value: 'nenhum grau' },
   { label: '1 Grau', value: '1 Grau' },
@@ -43,6 +46,7 @@ const graus = [
   { label: '3 Graus', value: '3 Graus' },
   { label: '4 Graus', value: '4 Graus' },
 ];
+
 const planos = [
   { label: 'Mensal', value: 'mensal' },
   { label: 'Trimestral', value: 'trimestral' },
@@ -52,7 +56,6 @@ const planos = [
 export default function CadastroScreen() {
   const { user, session } = useAuth();
 
-  // Estados do formulário
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -65,13 +68,12 @@ export default function CadastroScreen() {
   const [foto, setFoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isSenhaVisivel, setIsSenhaVisivel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const pickImage = async () => {
-    // Pedimos permissão para acessar a galeria de mídia
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (permissionResult.granted === false) {
-      Alert.alert("Permissão necessária", "Você precisa permitir o acesso à galeria para selecionar uma foto.");
+    if (!permissionResult.granted) {
+      Alert.alert("Permissão necessária", "Você precisa permitir o acesso à galeria.");
       return;
     }
 
@@ -87,8 +89,7 @@ export default function CadastroScreen() {
     }
   };
 
-  // ... (as funções resetForm e handleSalvarAluno continuam as mesmas) ...
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setNome('');
     setEmail('');
     setTelefone('');
@@ -99,11 +100,19 @@ export default function CadastroScreen() {
     setPlano('mensal');
     setSenha('');
     setFoto(null);
-  };
+  }, []);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    resetForm();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 500);
+  }, [resetForm]);
 
   const handleSalvarAluno = async () => {
     const formatarDataParaAPI = (data: string) => {
-      if (data.length !== 8) return null; // Retorna nulo se a data estiver incompleta
+      if (data.length !== 8) return null;
       const dia = data.substring(0, 2);
       const mes = data.substring(2, 4);
       const ano = data.substring(4, 8);
@@ -111,10 +120,9 @@ export default function CadastroScreen() {
     };
 
     const dataFormatada = formatarDataParaAPI(dataNascimento);
-
     if (!dataFormatada) {
-        Alert.alert('Erro', 'Por favor, insira uma data de nascimento válida.');
-        return;
+      Alert.alert('Erro', 'Data de nascimento inválida.');
+      return;
     }
 
     const formData = new FormData();
@@ -140,10 +148,10 @@ export default function CadastroScreen() {
     setIsLoading(true);
     try {
       const response = await api.cadastrarAluno(formData, session);
-      Alert.alert('Sucesso!', response.message || 'Aluno cadastrado com sucesso.');
+      Alert.alert('Sucesso!', response.message || 'Aluno cadastrado.');
       resetForm();
     } catch (error: any) {
-      Alert.alert('Falha no Cadastro', error.message || 'Não foi possível cadastrar o aluno.');
+      Alert.alert('Erro', error.message || 'Não foi possível cadastrar.');
     } finally {
       setIsLoading(false);
     }
@@ -158,191 +166,160 @@ export default function CadastroScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Cadastro de Alunos</Text>
-        
-        <View style={styles.form}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Nome *</Text>
-            <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome completo do aluno" editable={!isLoading} />
-          </View>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Email *</Text>
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="email@exemplo.com" keyboardType="email-address" autoCapitalize="none" editable={!isLoading} />
-          </View>
-
-          {/* ===== INÍCIO DA MODIFICAÇÃO ===== */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Telefone *</Text>
-            <MaskInput
-              style={styles.input}
-              value={telefone}
-              onChangeText={(masked: string, unmasked: string) => {
-                setTelefone(unmasked); // Salva o valor sem a máscara
-              }}
-              mask={['(', /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/]}
-              placeholder="(00) 99999-9999"
-              keyboardType="phone-pad"
-              editable={!isLoading}
+    <LinearGradient
+      colors={['#f9f100', '#252403ff', '#222']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 1.5, y: 2 }}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#007bff', '#f9f100']}
+              tintColor={'#007bff'}
             />
-          </View>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Data de Nascimento *</Text>
-            <MaskInput
-              style={styles.input}
-              value={dataNascimento}
-              onChangeText={(masked: string, unmasked: string) => {
-                setDataNascimento(unmasked); // Salva o valor sem a máscara
-              }}
-              mask={[/\d/, /\d/, '/', /\d/, /\d/, '/', /\d/, /\d/,/\d/, /\d/]}
-              placeholder="DD-MM-AAAA"
-              keyboardType="numeric"
-              editable={!isLoading}
-            />
-          </View>
-          {/* ===== FIM DA MODIFICAÇÃO ===== */}
+          }
+        >
+          <Text style={styles.title}>Cadastro de Alunos</Text>
 
-          <StyledPicker label="Sexo *" items={sexos} onValueChange={setSexo} value={sexo} disabled={isLoading} />
-          <StyledPicker label="Faixa *" items={faixas} onValueChange={setFaixa} value={faixa} disabled={isLoading} />
-          <StyledPicker label="Grau *" items={graus} onValueChange={setGrau} value={grau} disabled={isLoading} />
-          <StyledPicker label="Plano *" items={planos} onValueChange={setPlano} value={plano} disabled={isLoading} />
-          
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Senha *</Text>
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                value={senha}
-                onChangeText={setSenha}
-                placeholder="Mínimo de 6 caracteres"
-                secureTextEntry={!isSenhaVisivel} // Controlado pelo estado
+          <View style={styles.form}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Nome *</Text>
+              <TextInput style={styles.input} value={nome} onChangeText={setNome} placeholder="Nome completo" editable={!isLoading} />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Email *</Text>
+              <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="email@exemplo.com" keyboardType="email-address" autoCapitalize="none" editable={!isLoading} />
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Telefone *</Text>
+              <MaskInput
+                style={styles.input}
+                value={telefone}
+                onChangeText={(masked, unmasked) => setTelefone(unmasked)}
+                mask={['(', /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/]}
+                placeholder="(00) 99999-9999"
+                keyboardType="phone-pad"
                 editable={!isLoading}
               />
-              <TouchableOpacity onPress={() => setIsSenhaVisivel(!isSenhaVisivel)}>
-                <Ionicons name={isSenhaVisivel ? "eye-off" : "eye"} size={24} color="gray" />
-              </TouchableOpacity>
+            </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Data de Nascimento *</Text>
+              <MaskInput
+                style={styles.input}
+                value={dataNascimento}
+                onChangeText={(masked, unmasked) => setDataNascimento(unmasked)}
+                mask={[/\d/, /\d/, '/', /\d/, /\d/, '/', /\d/, /\d/, /\d/, /\d/]}
+                placeholder="DD-MM-AAAA"
+                keyboardType="numeric"
+                editable={!isLoading}
+              />
+            </View>
+
+            <StyledPicker label="Sexo *" items={sexos} onValueChange={setSexo} value={sexo} disabled={isLoading} />
+            <StyledPicker label="Faixa *" items={faixas} onValueChange={setFaixa} value={faixa} disabled={isLoading} />
+            <StyledPicker label="Grau *" items={graus} onValueChange={setGrau} value={grau} disabled={isLoading} />
+            <StyledPicker label="Plano *" items={planos} onValueChange={setPlano} value={plano} disabled={isLoading} />
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Senha *</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={senha}
+                  onChangeText={setSenha}
+                  placeholder="Mínimo de 6 caracteres"
+                  secureTextEntry={!isSenhaVisivel}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity onPress={() => setIsSenhaVisivel(!isSenhaVisivel)}>
+                  <Ionicons name={isSenhaVisivel ? "eye-off" : "eye"} size={24} color="gray" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Foto do Aluno</Text>
+              <Button title="Selecionar Foto" onPress={pickImage} disabled={isLoading} />
+              {foto && <Image source={{ uri: foto.uri }} style={styles.imagePreview} />}
+            </View>
+
+            <View style={styles.buttonContainer}>
+              {isLoading ? <ActivityIndicator size="large" color="#0000ff" /> : <Button title="Salvar Aluno" onPress={handleSalvarAluno} />}
             </View>
           </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Foto do Aluno</Text>
-            <Button title="Selecionar Foto" onPress={pickImage} disabled={isLoading} />
-            {foto && (
-              <Image source={{ uri: foto.uri }} style={styles.imagePreview} />
-            )}
-          </View>
-
-          <View style={styles.buttonContainer}>
-            {isLoading ? (
-              <ActivityIndicator size="large" color="#0000ff" />
-            ) : (
-              <Button title="Salvar Aluno" onPress={handleSalvarAluno} />
-            )}
-          </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    padding: 20,
-  },
+  safeArea: { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { padding: 20, paddingBottom: 40 },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#222',
     textAlign: 'center',
-    marginBottom: 20,
-    backgroundColor: 'rgba(249, 241, 0, 0.981)',
-    padding: 10,
-    borderRadius: 5,
+    marginBottom: 3,
+    backgroundColor: '#ffffffff',
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 12,
     alignSelf: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   form: {
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 5,
-    // Sombra para a web
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
-    // Sombra para o nativo
-    elevation: 5,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  formGroup: {
-    marginBottom: 15,
-  },
-  label: {
-    // No React Native, 'display: block' não é necessário
-    marginBottom: 5,
-    color: '#333',
-    fontWeight: 'bold',
-  },
+  formGroup: { marginBottom: 15 },
+  label: { marginBottom: 6, color: '#555', fontWeight: '600', fontSize: 15 },
   input: {
     width: '100%',
-    // Web e mobile têm necessidades de preenchimento (padding) diferentes
-    padding: Platform.OS === 'web' ? 10 : 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 3,
-    backgroundColor: '#fff',
-    fontSize: 16,
-  },
-  buttonContainer: {
-    marginTop: 20,
-  },
-  permissionText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#dc3545',
-    marginBottom: 10,
-  },
-  // Estilos do seletor temporário
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 3,
     padding: 12,
-    backgroundColor: '#fff',
-  },
-  pickerText: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    backgroundColor: '#f9f9f9',
     fontSize: 16,
   },
-  pickerInfo: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 3,
-    backgroundColor: '#fff',
+    borderRadius: 10,
+    backgroundColor: '#f9f9f9',
     paddingHorizontal: 10,
   },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: Platform.OS === 'web' ? 10 : 12,
-    fontSize: 16,
-  },
+  passwordInput: { flex: 1, paddingVertical: 12, fontSize: 16 },
+  buttonContainer: { marginTop: 20 },
+  permissionText: { fontSize: 20, fontWeight: 'bold', color: '#dc3545', marginBottom: 10 },
   imagePreview: {
-    width: 100,
-    height: 100,
-    borderRadius: 50, // Deixa a pré-visualização redonda
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     marginTop: 15,
     alignSelf: 'center',
+    borderColor: '#ccc',
+    borderWidth: 1,
   },
 });

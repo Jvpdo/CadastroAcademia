@@ -1,163 +1,117 @@
-import { Platform } from 'react-native'; // Import Platform
+// context/AuthContext.tsx
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
-import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const TOKEN_KEY = 'auth-token';
-const SENHA_KEY = 'auth-senha';
-
-const senhaStore = {
-  async setItem(senha: string) {
-    if (Platform.OS === 'web') {
-      try {
-        localStorage.setItem(SENHA_KEY, senha);
-      } catch (e) {
-        console.error('Local storage is unavailable:', e);
-      }
-    } else {
-      await SecureStore.setItemAsync(SENHA_KEY, senha);
-    }
-  },
-  async getItem() {
-    if (Platform.OS === 'web') {
-      try {
-        return localStorage.getItem(SENHA_KEY);
-      } catch (e) {
-        console.error('Local storage is unavailable:', e);
-        return null;
-      }
-    } else {
-      return await SecureStore.getItemAsync(SENHA_KEY);
-    }
-  },
-  async deleteItem() {
-    if (Platform.OS === 'web') {
-      try {
-        localStorage.removeItem(SENHA_KEY);
-      } catch (e) {
-        console.error('Local storage is unavailable:', e);
-      }
-    } else {
-      await SecureStore.deleteItemAsync(SENHA_KEY);
-    }
-  },
-};
-
-// Objeto de armazenamento que escolhe a melhor opção para a plataforma
-const tokenStore = {
-  async setItem(token: string) {
-    if (Platform.OS === 'web') {
-      try {
-        localStorage.setItem(TOKEN_KEY, token);
-      } catch (e) {
-        console.error('Local storage is unavailable:', e);
-      }
-    } else {
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
-    }
-  },
-  async getItem() {
-    if (Platform.OS === 'web') {
-      try {
-        return localStorage.getItem(TOKEN_KEY);
-      } catch (e) {
-        console.error('Local storage is unavailable:', e);
-        return null;
-      }
-    } else {
-      return await SecureStore.getItemAsync(TOKEN_KEY);
-    }
-  },
-  async deleteItem() {
-    if (Platform.OS === 'web') {
-      try {
-        localStorage.removeItem(TOKEN_KEY);
-      } catch (e) {
-        console.error('Local storage is unavailable:', e);
-      }
-    } else {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-    }
-  },
-};
+const CREDENTIALS_KEY = 'biometric_credentials';
 
 interface User {
-  nome: string;
-  permissao: 'admin' | 'aluno';
+    id: number;
+    nome: string;
+    email: string;
+    permissao: 'admin' | 'aluno';
 }
 
-const AuthContext = createContext<{
-  signIn: (token: string, senha: string) => void;
-  signOut: () => void;
-  session: string | null;
-  user: User | null;
-  senha: string | null;
-  isLoading: boolean;
-}>({
-  signIn: () => {},
-  signOut: () => {},
-  session: null,
-  user: null,
-  senha: null,
-  isLoading: false,
-});
+interface AuthContextType {
+    signIn: (token: string, senha?: string) => Promise<void>;
+    signOut: () => void;
+    session: string | null;
+    isLoading: boolean;
+    user: User | null;
+    // --- CORREÇÃO APLICADA AQUI ---
+    // A função agora pode receber as credenciais como um argumento opcional.
+    enableBiometrics: (credentials?: { email: string; senha: string }) => Promise<boolean>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function useAuth() {
-  return useContext(AuthContext);
+    const value = useContext(AuthContext);
+    if (!value) {
+        throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+    }
+    return value;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [senha, setSenha] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider(props: any) {
+    const [session, setSession] = useState<string | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [tempCredentials, setTempCredentials] = useState<{ email: string, senha: string } | null>(null);
 
+    useEffect(() => {
+        const loadToken = async () => {
+            const token = await SecureStore.getItemAsync(TOKEN_KEY);
+            if (token) {
+                setSession(token);
+                try {
+                    const decoded: User = jwtDecode(token);
+                    setUser(decoded);
+                } catch (e) {
+                    console.error("Falha ao decodificar o token", e);
+                    await signOut();
+                }
+            }
+            setIsLoading(false);
+        };
+        loadToken();
+    }, []);
 
-  useEffect(() => {
-  async function loadTokenUserAndSenha() {
-    try {
-      const token = await tokenStore.getItem();
-      const savedSenha = await senhaStore.getItem();
-      if (token) {
-        const decodedUser = jwtDecode<User>(token);
-        setUser(decodedUser);
+    const signIn = async (token: string, senha?: string) => {
         setSession(token);
-      }
-      if (savedSenha) {
-        setSenha(savedSenha);
-      }
-    } catch (e) {
-      console.error('Failed to load token, user or senha', e);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-  loadTokenUserAndSenha();
-}, []);
+        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        try {
+            const decoded: User = jwtDecode(token);
+            setUser(decoded);
+            if (senha && decoded.email) {
+                setTempCredentials({ email: decoded.email, senha });
+            } else {
+                setTempCredentials(null);
+            }
+        } catch (e) {
+            console.error("Falha ao decodificar token no signIn", e);
+        }
+    };
 
+    const signOut = async () => {
+        setSession(null);
+        setUser(null);
+        setTempCredentials(null);
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+    };
 
-  const signIn = async (token: string, senha: string) => {
-  const decodedUser = jwtDecode<User>(token);
-  setUser(decodedUser);
-  setSession(token);
-  setSenha(senha);
-  await tokenStore.setItem(token);
-  await senhaStore.setItem(senha); // salva a senha no armazenamento seguro
-};
+    const enableBiometrics = async (credentials?: { email: string; senha: string }): Promise<boolean> => {
+        // Prioriza as credenciais passadas diretamente (da tela de login).
+        // Se nenhuma for passada, usa as credenciais temporárias (da tela de configurações).
+        const credsToSave = credentials || tempCredentials;
 
+        if (!credsToSave || !credsToSave.email || !credsToSave.senha) {
+            Alert.alert(
+                "Ação Necessária",
+                "Para ativar a biometria, por favor, saia e faça o login novamente usando seu email e senha.",
+                [{ text: "Entendi" }]
+            );
+            return false;
+        }
+        try {
+            await SecureStore.setItemAsync(CREDENTIALS_KEY, JSON.stringify(credsToSave));
+            return true;
+        } catch {
+            Alert.alert('Erro', 'Não foi possível salvar as credenciais para biometria.');
+            return false;
+        }
+    };
 
-  const signOut = async () => {
-  await tokenStore.deleteItem();
-  await senhaStore.deleteItem();  // remove senha do armazenamento seguro
-  setUser(null);
-  setSession(null);
-  setSenha(null);
-};
+    const value = {
+        signIn,
+        signOut,
+        session,
+        isLoading,
+        user,
+        enableBiometrics,
+    };
 
-
-  return (
-    <AuthContext.Provider value={{ signIn, signOut, session, user, senha, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+    return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
 }

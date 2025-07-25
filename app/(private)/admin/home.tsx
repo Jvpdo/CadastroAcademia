@@ -92,7 +92,7 @@ export default function AdminHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f0f2f5' },
+  safeArea: { flex: 1, backgroundColor: '#000000ff' },
   container: { padding: 20 },
   // 4. Estilos do cabeçalho atualizados para alinhar os itens
   header: {
@@ -104,11 +104,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1D3D47',
+    color: '#f2f21fff',
   },
   headerSubtitle: {
     fontSize: 18,
-    color: '#6c757d',
+    color: '#f2f21fe6',
   },
   menuGrid: {},
   button: {

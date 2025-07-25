@@ -1,5 +1,8 @@
+import axios, { type AxiosError, type InternalAxiosRequestConfig, isAxiosError } from 'axios';
+
 // A URL base do seu backend.
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 
 if (!API_URL) {
   // Este erro ajuda a diagnosticar se o arquivo .env não foi carregado.
@@ -9,26 +12,52 @@ if (!API_URL) {
 // Exportamos a constante para que outros arquivos possam usá-la
 export const BASE_URL = API_URL;
 
+const apiInstance = axios.create({
+  baseURL: BASE_URL,
+});
+
+apiInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const api = {
   login: async (email: string, senha: string) => {
     try {
-      const response = await fetch(`${BASE_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, senha }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao fazer login');
-      }
-
-      return await response.json();
+        const response = await apiInstance.post('/login', { email, senha });
+        return response.data;
     } catch (error) {
-      console.error('Erro na chamada da API de login:', error);
-      throw error;
+        if (isAxiosError(error)) { // Agora usamos a função importada corretamente
+            const axiosError = error as AxiosError<any>;
+            if (axiosError.response?.data?.error) {
+                throw new Error(axiosError.response.data.error);
+            }
+        }
+        throw new Error('Não foi possível conectar ao servidor. Verifique sua rede e o endereço IP.');
+    }
+  },
+
+  verifyPassword: async (token: string, senha: string) => {
+    try {
+        const response = await apiInstance.post('/api/me/verify-password', 
+          { senha },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        return response.data;
+    } catch (error) {
+        if (isAxiosError(error)) {
+            const axiosError = error as AxiosError<any>;
+            if (axiosError.response?.data?.error) {
+                throw new Error(axiosError.response.data.error);
+            }
+        }
+        throw new Error('Não foi possível verificar a senha.');
     }
   },
 
@@ -334,12 +363,20 @@ updateHorario: async (id: number, horarioData: { descricao: string; horario_inic
 
   // Busca os dados do próprio usuário logado
   getMeusDados: async (token: string | null) => {
-    if (!token) throw new Error('Não autenticado');
-    const response = await fetch(`${BASE_URL}/api/meus-dados`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    if (!response.ok) throw new Error('Falha ao buscar dados do perfil');
-    return await response.json();
+    try {
+        const response = await apiInstance.get('/api/meus-dados', {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        return response.data;
+    } catch (error) {
+        if (isAxiosError(error)) {
+            const axiosError = error as AxiosError<any>;
+            if (axiosError.response?.data?.error) {
+                throw new Error(axiosError.response.data.error);
+            }
+        }
+        throw new Error('Não foi possível carregar os dados do usuário.');
+    }
   },
 
   // Atualiza os dados do próprio usuário logado
@@ -446,6 +483,4 @@ updateHorario: async (id: number, horarioData: { descricao: string; horario_inic
     }
     return await response.json();
   },
-
-
 };

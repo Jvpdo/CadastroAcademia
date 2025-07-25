@@ -1,26 +1,32 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+// constants/Colors.ts
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// 1. Definimos as cores da sua marca aqui
+const amareloAcademia = '#FFD700'; // Um tom de amarelo dourado/forte
+const pretoAcademia = '#121212';   // Um preto suave, não absoluto
+const cinzaFundo = '#1C1C1E';    // Um cinza escuro para elementos de fundo
+const textoPrincipal = '#FFFFFF';
+const textoSecundario = '#AAAAAA';
 
 export const Colors = {
+  // O tema claro pode ser mantido como padrão ou personalizado depois
   light: {
     text: '#11181C',
     background: '#fff',
-    tint: tintColorLight,
+    tint: '#0a7ea4', // Cor de destaque padrão
     icon: '#687076',
     tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconSelected: '#0a7ea4',
   },
+  // 2. Aplicamos as cores da marca ao tema escuro
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: textoPrincipal,
+    background: pretoAcademia,
+    tint: amareloAcademia,      // Cor principal de destaque (botões, links, ícones ativos)
+    icon: textoPrincipal,
+    tabIconDefault: textoSecundario, // Cor dos ícones inativos na barra de abas
+    tabIconSelected: amareloAcademia,  // Cor do ícone ativo na barra de abas
+    // Você pode adicionar mais cores personalizadas se precisar
+    cardBackground: cinzaFundo,
+    borderColor: '#27272A',
   },
 };
