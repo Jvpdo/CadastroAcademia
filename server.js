@@ -12,12 +12,28 @@ require('dotenv').config();
 
 // Configura conexão com MariaDB
 const pool = mariadb.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-    connectionLimit: 5
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT) || 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_DATABASE,
+  connectionLimit: 5,
 });
+
+async function testConnection() {
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    const rows = await conn.query("SELECT NOW() AS now");
+    console.log("Conectado com sucesso! Hora do servidor:", rows);
+  } catch (err) {
+    console.error("Erro na conexão:", err);
+  } finally {
+    if (conn) conn.release();
+  }
+}
+
+testConnection();
 
 // --- Configuração do Multer para Upload de Arquivos ---
 
