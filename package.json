@@ -8,13 +8,15 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
     "body-parser": "^1.20.3",
+    "cloudinary": "^1.41.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "mariadb": "^2.5.5",
     "multer": "^2.0.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "react-native-mask-input": "^1.2.3"
   }
 }
