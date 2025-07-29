@@ -8,6 +8,8 @@ const multer = require('multer');
 const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3000; // Adapta para ambientes em nuvem
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config();
 
 // Configura conexão com MariaDB
@@ -18,6 +20,13 @@ const pool = mariadb.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
   connectionLimit: 5,
+});
+
+// --- Configuração do Cloudinary ---
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 async function testConnection() {
@@ -38,15 +47,13 @@ testConnection();
 // --- Configuração do Multer para Upload de Arquivos ---
 
 // Define onde os arquivos serão salvos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'static/uploads/fotos_alunos/');
-    },
-    filename: function (req, file, cb) {
-        // CORREÇÃO: Garanta que esta linha use crases (`)
-        const nomeUnico = `foto-${Date.now()}-${file.originalname}`;
-        cb(null, nomeUnico);
-    }
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'fotos_alunos', // Nome da pasta no Cloudinary onde as fotos ficarão
+    format: async (req, file) => 'jpg', // Formato desejado do arquivo
+    public_id: (req, file) => `foto-${Date.now()}`, // Gera um nome de arquivo único
+  },
 });
 
 // Filtro para aceitar apenas imagens
@@ -59,7 +66,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Cria a instância do multer com a configuração de armazenamento e filtro
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+const upload = multer({ storage: storage });
 
 // --- Fim da Configuração do Multer ---
 
@@ -88,7 +95,6 @@ const protegerRota = (req, res, next) => {
 };
 
 // Middleware para servir arquivos estáticos
-app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use(bodyParser.json());
 
 // Rota para servir o index.html
@@ -233,8 +239,7 @@ app.get('/alunos', protegerRota, async (req, res) => {
         params.push(limit, offset);
 
         const rows = await conn.query(dataQuery, params);
-        conn.release();
-
+        
         // Retorna tanto os dados quanto as informações de paginação
         res.json({
             alunos: rows,
@@ -328,19 +333,18 @@ app.delete('/alunos/:id', protegerRota, async (req, res) => {
         // 2. Deletamos o registro do aluno do banco de dados.
         const result = await conn.query('DELETE FROM alunos WHERE id = ?', [alunoId]);
 
-        conn.release(); // Liberamos a conexão com o banco
-
         if (result.affectedRows > 0) {
             // 3. Se o aluno foi deletado com sucesso E ele tinha uma foto...
             if (fotoPath) {
                 // ...nós tentamos deletar o arquivo de imagem do servidor.
                 try {
-                    fs.unlinkSync(fotoPath);
-                    console.log(`Foto deletada com sucesso: ${fotoPath}`);
-                } catch (unlinkErr) {
+                    const publicIdWithFolder = fotoPath.split('/').slice(-2).join('/').split('.')[0];
+                    await cloudinary.uploader.destroy(publicIdWithFolder);
+                    console.log(`Foto deletada do Cloudinary: ${publicIdWithFolder}`);
+                } catch (cloudinaryErr) {
                     // Se houver um erro ao deletar o arquivo (ex: não encontrado),
                     // apenas registramos no console, mas não quebramos a requisição.
-                    console.error("Erro ao deletar arquivo de foto:", unlinkErr.message);
+                    console.error("Erro ao deletar arquivo de foto:", cloudinaryErr);
                 }
             }
             res.json({ message: "Aluno e foto associada deletados com sucesso!" });
@@ -350,7 +354,9 @@ app.delete('/alunos/:id', protegerRota, async (req, res) => {
     } catch (err) {
         if (conn) conn.release();
         res.status(500).json({ error: "Erro interno no servidor", details: err.message });
-    }
+    } finally {
+   if (conn) conn.release(); // <-- CORRIGIDO
+}
 });
 
 // Buscar um aluno pelo ID (ROTA NECESSÁRIA E PROTEGIDA)
@@ -719,19 +725,20 @@ app.put('/api/me/foto', protegerRota, upload.single('foto'), async (req, res) =>
 
         // 1. Antes de atualizar, busca o caminho da foto antiga para poder deletá-la
         const [aluno] = await conn.query('SELECT foto_path FROM alunos WHERE id = ?', [alunoId]);
+        const fotoAntigaPath = aluno ? aluno.foto_path : null;
 
         // 2. Atualiza o banco de dados com o caminho da nova foto
         await conn.query('UPDATE alunos SET foto_path = ? WHERE id = ?', [novaFotoPath, alunoId]);
 
-        conn.release();
-
-        // 3. Se existia uma foto antiga, deleta o arquivo do servidor
-        if (aluno && aluno.foto_path) {
-            // fs.unlink remove o arquivo. O try/catch interno evita que um erro aqui quebre a requisição.
+        // 3. Se existia uma foto antiga, deleta o arquivo do Cloudinary
+        if (fotoAntigaPath) {
             try {
-                fs.unlinkSync(aluno.foto_path);
-            } catch (unlinkErr) {
-                console.error("Erro ao deletar a foto antiga:", unlinkErr);
+                // Extrai o public_id da URL completa (ex: 'fotos_alunos/foto-12345')
+                const publicIdWithFolder = fotoAntigaPath.split('/').slice(-2).join('/').split('.')[0];
+                await cloudinary.uploader.destroy(publicIdWithFolder);
+                console.log(`Foto antiga deletada do Cloudinary: ${publicIdWithFolder}`);
+            } catch (cloudinaryErr) {
+                console.error("Erro ao deletar a foto antiga do Cloudinary:", cloudinaryErr);
             }
         }
 
@@ -834,8 +841,6 @@ app.put('/api/horarios/:id', protegerRota, async (req, res) => {
             'UPDATE horarios SET descricao = ?, horario_inicio = ?, horario_fim = ?, tipo_aula = ? WHERE id = ?',
             [descricao, horario_inicio, horario_fim, tipo_aula, id]
         );
-
-        conn.release();
 
         if (result.affectedRows > 0) {
             res.json({ message: 'Horário atualizado com sucesso!' });
