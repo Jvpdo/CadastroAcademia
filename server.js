@@ -88,7 +88,7 @@ const protegerRota = (req, res, next) => {
 };
 
 // Middleware para servir arquivos estáticos
-app.use(express.static(path.join(__dirname)));
+app.use('/static', express.static(path.join(__dirname, 'static')));
 app.use(bodyParser.json());
 
 // Rota para servir o index.html
