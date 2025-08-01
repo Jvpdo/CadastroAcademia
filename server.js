@@ -957,6 +957,36 @@ app.post('/api/kata/posicoes', protegerRota, async (req, res) => {
     }
 });
 
+// Rota para o admin ATUALIZAR uma posição (ex: adicionar/editar vídeo)
+app.put('/api/kata/posicoes/:id', protegerRota, async (req, res) => {
+    if (req.usuario.permissao !== 'admin') {
+        return res.status(403).json({ error: 'Acesso negado.' });
+    }
+    
+    const { id } = req.params;
+    const { video_url } = req.body; // Pega apenas a URL do vídeo do corpo da requisição
+
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        const result = await conn.query(
+            'UPDATE kata_posicoes SET video_url = ? WHERE id = ?',
+            [video_url, id]
+        );
+
+        if (result.affectedRows > 0) {
+            res.json({ message: 'Link do vídeo atualizado com sucesso!' });
+        } else {
+            res.status(404).json({ error: 'Posição não encontrada.' });
+        }
+    } catch (err) {
+        console.error("Erro ao atualizar o vídeo da posição:", err);
+        res.status(500).json({ error: 'Erro ao atualizar o vídeo.' });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
 // Rota para o admin deletar uma posição
 app.delete('/api/kata/posicoes/:id', protegerRota, async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
