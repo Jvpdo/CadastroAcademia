@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
-import { api, BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -70,9 +70,7 @@ export default function ListaPresencaScreen() {
   // Componente para renderizar cada aluno na lista
   const renderItem = ({ item }: { item: Presenca }) => {
     // Constrói a URL completa da foto, substituindo barras invertidas se necessário
-    const fotoUrl = item.foto_path
-      ? `${BASE_URL}/${item.foto_path.replace(/\\/g, '/')}`
-      : null;
+    const fotoUrl = item.foto_path;
 
     return (
       <View style={styles.itemContainer}>

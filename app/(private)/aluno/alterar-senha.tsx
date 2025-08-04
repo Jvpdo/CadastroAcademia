@@ -22,7 +22,7 @@ export default function AlterarSenhaScreen() {
   const [senhaAntiga, setSenhaAntiga] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
-
+  const [isConfirmarSenhaVisivel, setIsConfirmarSenhaVisivel] = useState(false);
   const [isSenhaAntigaVisivel, setIsSenhaAntigaVisivel] = useState(false);
   const [isNovaSenhaVisivel, setIsNovaSenhaVisivel] = useState(false);
 
@@ -92,12 +92,18 @@ export default function AlterarSenhaScreen() {
           </View>
 
           <Text style={styles.label}>Confirmar Nova Senha</Text>
-          <TextInput
-            style={[styles.input, styles.lastInput]}
-            secureTextEntry={!isNovaSenhaVisivel}
-            value={confirmarNovaSenha}
-            onChangeText={setConfirmarNovaSenha}
-          />
+                    <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.input}
+              secureTextEntry={!isConfirmarSenhaVisivel}
+              value={confirmarNovaSenha}
+              onChangeText={setConfirmarNovaSenha}
+            />
+            <TouchableOpacity onPress={() => setIsConfirmarSenhaVisivel(v => !v)}>
+              <Ionicons name={isConfirmarSenhaVisivel ? 'eye-off' : 'eye'} size={24} color="gray" />
+            </TouchableOpacity>
+          </View>
+          
 
           <View style={styles.buttonContainer}>
             {isLoading ? (
@@ -127,11 +133,13 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 20,
     paddingHorizontal: 10,
+    color: '#333'
   },
   input: {
     flex: 1,
     height: 50,
     fontSize: 16,
+    color: '#333'
   },
   lastInput: {
     borderWidth: 1,
@@ -140,6 +148,7 @@ const styles = StyleSheet.create({
     height: 50,
     paddingHorizontal: 15,
     fontSize: 16,
+    color: '#333'
   },
   buttonContainer: {
     marginTop: 30,

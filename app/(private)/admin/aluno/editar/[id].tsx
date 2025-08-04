@@ -136,26 +136,30 @@ export default function EditarAlunoScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Editar Aluno</Text>
         <View style={styles.form}>
-            <TextInput style={styles.input} placeholder="Nome *" value={nome} onChangeText={setNome} />
-            <TextInput style={styles.input} placeholder="Email *" value={email} onChangeText={setEmail} keyboardType="email-address" />
-            <MaskInput style={styles.input} placeholder="Telefone" value={telefone} onChangeText={(m, u) => setTelefone(u)} mask={['(', /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/]} />
-            <MaskInput style={styles.input} placeholder="Data de Nascimento (DD/MM/AAAA)" value={dataNascimento} onChangeText={(m, u) => setDataNascimento(u)} mask={[/\d/, /\d/, '/', /\d/, /\d/, '/', /\d/, /\d/, /\d/, /\d/]} />
+            {/* CORREÇÕES APLICADAS AQUI */}
+            <TextInput style={styles.input} placeholder="Nome *" placeholderTextColor="#333" value={nome} onChangeText={setNome} />
+            <TextInput style={styles.input} placeholder="Email *" placeholderTextColor="#333" value={email} onChangeText={setEmail} keyboardType="email-address" />
+            <MaskInput style={styles.input} placeholder="Telefone" placeholderTextColor="#333" value={telefone} onChangeText={(m, u) => setTelefone(u)} mask={['(', /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/]} />
+            <MaskInput style={styles.input} placeholder="Data de Nascimento (DD/MM/AAAA)" placeholderTextColor="#333" value={dataNascimento} onChangeText={(m, u) => setDataNascimento(u)} mask={[/\d/, /\d/, '/', /\d/, /\d/, '/', /\d/, /\d/, /\d/, /\d/]} />
+            
             <StyledPicker label="Sexo" items={sexos} onValueChange={setSexo} value={sexo} />
             <StyledPicker label="Faixa" items={faixas} onValueChange={setFaixa} value={faixa} />
             <StyledPicker label="Grau" items={graus} onValueChange={setGrau} value={grau} />
             <StyledPicker label="Plano" items={planos} onValueChange={setPlano} value={plano} />
 
-            {/* ===== CAMPO DE SENHA ATUALIZADO COM ÍCONE ===== */}
             <Text style={styles.passwordLabel}>Alterar Senha (opcional)</Text>
             
             {/* Campo Nova Senha */}
             <View style={styles.passwordContainer}>
               <TextInput
-                  style={styles.inputIcon}
+                  // CORREÇÃO: Usando o estilo 'passwordInput' que agora define a cor do texto
+                  style={styles.passwordInput}
                   placeholder="Nova Senha"
+                  // CORREÇÃO: Adicionando a cor do placeholder
+                  placeholderTextColor="#333"
                   value={novaSenha}
                   onChangeText={setNovaSenha}
-                  secureTextEntry={!isNovaSenhaVisivel} // Controlado pelo estado
+                  secureTextEntry={!isNovaSenhaVisivel}
                   autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setIsNovaSenhaVisivel(!isNovaSenhaVisivel)}>
@@ -179,10 +183,20 @@ export default function EditarAlunoScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  container: { padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  form: { backgroundColor: '#fff', padding: 20, borderRadius: 8, elevation: 2 },
-  input: { height: 45, borderColor: '#ccc', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, marginBottom: 15, backgroundColor: '#fff', fontSize: 16 },
+  container: { padding: 20, paddingBottom: 40 },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#333' },
+  form: { backgroundColor: '#fff', padding: 20, borderRadius: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2 },
+  input: { 
+    height: 50, // Altura padronizada
+    borderColor: '#ccc', 
+    borderWidth: 1, 
+    borderRadius: 8, // Bordas mais suaves
+    paddingHorizontal: 15, 
+    marginBottom: 15, 
+    backgroundColor: '#fff', 
+    fontSize: 16, 
+    color: '#000' // Cor do texto digitado
+  },
   buttonContainer: { marginTop: 20 },
   errorText: { color: 'red', marginBottom: 15, textAlign: 'center' },
   passwordLabel: {
@@ -193,24 +207,24 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderTopColor: '#eee',
     borderTopWidth: 1,
-    paddingTop: 15
+    paddingTop: 20
   },
-  // ===== NOVOS ESTILOS PARA O CAMPO DE SENHA COM ÍCONE =====
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderColor: '#ccc',
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 8, // Bordas mais suaves
     marginBottom: 15,
     backgroundColor: '#fff',
-    height: 45,
+    height: 50, // Altura padronizada
   },
-  inputIcon: {
+  passwordInput: {
     flex: 1,
-    height: 45,
-    paddingHorizontal: 10,
+    height: '100%',
+    paddingHorizontal: 15,
     fontSize: 16,
+    color: '#000', // CORREÇÃO: Cor do texto da senha definida para preto
   },
   icon: {
     paddingHorizontal: 10,

@@ -3,6 +3,8 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { jwtDecode } from 'jwt-decode';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const TOKEN_KEY = 'auth-token';
 const CREDENTIALS_KEY = 'biometric_credentials';
@@ -45,10 +47,11 @@ export function AuthProvider(props: any) {
         const loadToken = async () => {
             const token = await SecureStore.getItemAsync(TOKEN_KEY);
             if (token) {
-                setSession(token);
                 try {
                     const decoded: User = jwtDecode(token);
                     setUser(decoded);
+                    setSession(token);
+
                 } catch (e) {
                     console.error("Falha ao decodificar o token", e);
                     await signOut();
@@ -60,26 +63,37 @@ export function AuthProvider(props: any) {
     }, []);
 
     const signIn = async (token: string, senha?: string) => {
+    console.log('[AuthContext.tsx] signIn iniciado com token:', token);
+    try {
+        // 1. Decodifique o token PRIMEIRO
+        const decoded: User = jwtDecode(token);
+        console.log('[AuthContext.tsx] Token decodificado com sucesso:', decoded);
+
+        // 2. Atualize os estados em sequência
+        setUser(decoded);
         setSession(token);
+
+        // 3. Salve tudo de forma assíncrona
         await SecureStore.setItemAsync(TOKEN_KEY, token);
-        try {
-            const decoded: User = jwtDecode(token);
-            setUser(decoded);
-            if (senha && decoded.email) {
-                setTempCredentials({ email: decoded.email, senha });
-            } else {
-                setTempCredentials(null);
-            }
-        } catch (e) {
-            console.error("Falha ao decodificar token no signIn", e);
+
+        if (senha && decoded.email) {
+            setTempCredentials({ email: decoded.email, senha });
+        } else {
+            setTempCredentials(null);
         }
-    };
+    } catch (e) {
+        console.error("[AuthContext.tsx] ERRO CRÍTICO AO DECODIFICAR TOKEN:", e);
+        // Em caso de erro, deslogue para garantir um estado limpo
+        await signOut(); 
+    }
+};
 
     const signOut = async () => {
         setSession(null);
         setUser(null);
         setTempCredentials(null);
         await SecureStore.deleteItemAsync(TOKEN_KEY);
+        await AsyncStorage.removeItem('last-activity-timestamp'); 
     };
 
     const enableBiometrics = async (credentials?: { email: string; senha: string }): Promise<boolean> => {

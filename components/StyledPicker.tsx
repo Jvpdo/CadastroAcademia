@@ -1,82 +1,60 @@
-// Em components/StyledPicker.tsx
+// components/StyledPicker.tsx
 
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import RNPickerSelect from 'react-native-picker-select';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 
-interface PickerProps {
+interface StyledPickerProps {
   label: string;
-  items: { label: string; value: any }[];
-  onValueChange: (value: any) => void;
-  value: any;
-  placeholder?: { label: string; value: null };
+  items: { label: string; value: string }[];
+  value: string;
+  onValueChange: (value: string) => void;
   disabled?: boolean;
 }
 
-export const StyledPicker: React.FC<PickerProps> = ({
-  label,
-  items,
-  onValueChange,
-  value,
-  placeholder = {},
-  disabled = false,
-}) => {
+export function StyledPicker({ label, items, value, onValueChange, disabled }: StyledPickerProps) {
   return (
-    <View style={styles.formGroup}>
+    <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <RNPickerSelect
-        onValueChange={onValueChange}
-        items={items}
-        value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        style={pickerSelectStyles}
-        useNativeAndroidPickerStyle={false}
-        Icon={() => {
-          return <Ionicons name="chevron-down" size={24} color="gray" />;
-        }}
-      />
+      <View style={[styles.pickerContainer, disabled && styles.disabled]}>
+        <Picker
+          selectedValue={value}
+          onValueChange={(itemValue) => onValueChange(itemValue.toString())}
+          enabled={!disabled}
+          style={styles.picker}
+        >
+          {items.map((item) => (
+            <Picker.Item key={item.value} label={item.label} value={item.value} />
+          ))}
+        </Picker>
+      </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  formGroup: {
+  container: {
     marginBottom: 15,
   },
   label: {
-    marginBottom: 5,
-    color: '#333',
-    fontWeight: 'bold',
+    marginBottom: 6,
+    color: '#555',
+    fontWeight: '600',
+    fontSize: 15,
   },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+  pickerContainer: {
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 4,
-    color: 'black',
-    paddingRight: 30, // para garantir que o texto não fique atrás do ícone
-    backgroundColor: '#fff',
+    borderRadius: 10,
+    backgroundColor: '#f9f9f9',
+    justifyContent: 'center',
   },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    color: 'black',
-    paddingRight: 30, // para garantir que o texto não fique atrás do ícone
-    backgroundColor: '#fff',
+  picker: {
+    width: '100%',
+    color: '#000',
   },
-  iconContainer: {
-    top: 10,
-    right: 15,
+  disabled: {
+    backgroundColor: '#e9ecef',
+    opacity: 0.7,
   },
 });

@@ -28,13 +28,39 @@ export default function LoginScreen() {
         setIsLoading(true);
         try {
             const data = await api.login(loginEmail, loginPassword);
+             console.log('[login.tsx] Resposta da API:', JSON.stringify(data, null, 2));
             if (data.token) {
                 await signIn(data.token, isBiometricLogin ? undefined : loginPassword);
+                console.log('[login.tsx] Chamou signIn do contexto.');
                 return true;
             }
             throw new Error('Token não recebido da API');
         } catch (error: any) {
-            Alert.alert('Falha no Login', error.message || 'Não foi possível fazer login.');
+            console.error("--- ERRO DETALHADO NO performLogin ---");
+
+    let errorMessage = 'Verifique suas credenciais ou a conexão com a internet.';
+
+    if (error.response) {
+        // O servidor respondeu com um status de erro (4xx, 5xx)
+        console.error("Status do Erro:", error.response.status);
+        console.error("Dados do Erro da API:", JSON.stringify(error.response.data, null, 2));
+        
+        // Tenta pegar uma mensagem de erro específica do seu backend
+        const apiError = error.response.data.message || error.response.data.error;
+        if (apiError) {
+            errorMessage = apiError;
+        }
+
+    } else if (error.request) {
+        // A requisição foi feita mas não houve resposta (servidor offline, sem internet)
+        console.error("Erro de requisição: Nenhuma resposta do servidor.");
+        errorMessage = "Não foi possível conectar ao servidor. Verifique sua internet e se o servidor está online.";
+    } else {
+        // Algum outro erro aconteceu ao montar a requisição
+        console.error("Erro geral na configuração:", error.message);
+        errorMessage = error.message;
+    }
+            Alert.alert('Falha no Login', errorMessage || 'Não foi possível fazer login.');
             return false;
         } finally {
             setIsLoading(false);
@@ -81,10 +107,14 @@ export default function LoginScreen() {
     }, [handleBiometricAuth, session]);
 
     const handleLogin = async () => {
+          console.log('--- Iniciando handleLogin ---');
+
         if (!email || !senha) {
             Alert.alert('Erro', 'Por favor, preencha o email e a senha.');
             return;
         }
+        console.log('Definindo isLoading para TRUE');
+  setIsLoading(true);
         const success = await performLogin(email, senha, false);
         if (success && isBiometricSupported) {
             const hasAsked = await SecureStore.getItemAsync(HAS_ASKED_KEY);
@@ -222,6 +252,7 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
         borderRadius: 8,
         fontSize: 16,
+        color: '#000',
     },
     btn: {
         width: '100%',

@@ -269,6 +269,23 @@ updateHorario: async (id: number, horarioData: { descricao: string; horario_inic
     return await response.json();
   },
 
+  updateKataPosicaoVideo: async (id: number, video_url: string, token: string | null) => {
+    if (!token) throw new Error('Não autenticado');
+    const response = await fetch(`${BASE_URL}/api/kata/posicoes/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ video_url }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erro ao atualizar o vídeo');
+    }
+    return await response.json();
+  },
+
   // Deleta uma posição específica
   deleteKataPosicao: async (id: number, token: string | null) => {
     if (!token) throw new Error('Não autenticado');

@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
-import { api, BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import { useLocalSearchParams, Stack, useRouter, useFocusEffect } from 'expo-router';
 import React, {useState, useCallback } from 'react';
 import {
@@ -12,6 +12,7 @@ import {
   Button,
   Alert,
   RefreshControl,
+  
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,17 +43,34 @@ export default function AlunoDetalheScreen() {
 
   const alunoId = Number(id);
 
+  const formatarTelefone = (tel: string) => {
+  if (!tel || typeof tel !== 'string') return 'Não informado';
+
+  const numeros = tel.replace(/\D/g, ''); // Remove tudo que não for dígito
+  if (numeros.length === 11) {
+    // Formato (XX) XXXXX-XXXX
+    return `(${numeros.substring(0, 2)}) ${numeros.substring(2, 7)}-${numeros.substring(7)}`;
+  }
+  if (numeros.length === 10) {
+    // Formato (XX) XXXX-XXXX
+    return `(${numeros.substring(0, 2)}) ${numeros.substring(2, 6)}-${numeros.substring(6)}`;
+  }
+  return tel; // Retorna o original se não corresponder aos padrões
+};
+
   const fetchAluno = useCallback(async () => {
     if (!alunoId) return;
     try {
 if (!isRefreshing) setIsLoading(true); 
       setError(null);
       const response = await api.getAlunoById(alunoId, session);
+      console.log('DADOS DO ALUNO RECEBIDOS DA API:', response.data);
       setAluno(response.data);
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro ao buscar os detalhes.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [alunoId, session, isRefreshing]);
 
@@ -98,7 +116,7 @@ if (!isRefreshing) setIsLoading(true);
   const formatarData = (dataISO: string) => {
     if (!dataISO) return 'Não informado';
     const data = new Date(dataISO);
-    return data.toLocaleDateString('pt-BR');
+    return data.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   };
 
   if (isLoading) {
@@ -115,9 +133,7 @@ if (!isRefreshing) setIsLoading(true);
   }
 
   // Se passou pelas verificações acima, 'aluno' não é mais nulo
-  const fotoUrl = aluno.foto_path
-    ? `${BASE_URL}/${aluno.foto_path.replace(/\\/g, '/')}`
-    : null;
+  const fotoUrl = aluno.foto_path;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -137,8 +153,8 @@ if (!isRefreshing) setIsLoading(true);
         <Text style={styles.alunoNome}>{aluno.nome}</Text>
         
         <View style={styles.infoBox}>
-          <InfoRow label="Email:" value={aluno.email} />
-          <InfoRow label="Telefone:" value={aluno.telefone} />
+          <InfoRow label="Email:" value={aluno.email} valueStyle={styles.infoValueNoTransform} />
+          <InfoRow label="Telefone:" value={formatarTelefone(aluno.telefone)} />
           <InfoRow label="Sexo:" value={aluno.sexo} />
           <InfoRow label="Nascimento:" value={formatarData(aluno.dataNascimento)} />
           <InfoRow label="Faixa:" value={aluno.faixa} />
@@ -164,10 +180,10 @@ if (!isRefreshing) setIsLoading(true);
   );
 }
 
-const InfoRow = ({ label, value }: { label: string, value: string }) => (
+const InfoRow = ({ label, value, valueStyle }: { label: string, value: string, valueStyle?: object }) => (
   <View style={styles.infoRow}>
     <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
+    <Text style={[styles.infoValue, valueStyle]}>{value}</Text>
   </View>
 );
 
@@ -182,6 +198,11 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#eee' },
   infoLabel: { fontSize: 16, fontWeight: 'bold', color: '#6c757d' },
   infoValue: { fontSize: 16, color: '#212529', textTransform: 'capitalize' },
+  infoValueNoTransform: {
+    fontSize: 16,
+    color: '#212529',
+    textTransform: 'none', // Garante que não haverá capitalização
+  },
   actionsContainer: { marginTop: 30 },
   errorText: { color: 'red', marginBottom: 15, textAlign: 'center' },
 });

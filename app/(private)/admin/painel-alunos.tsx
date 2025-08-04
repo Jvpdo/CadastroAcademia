@@ -154,6 +154,7 @@ export default function HomeScreen() {
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar aluno por nome..."
+          placeholderTextColor="#000"
           value={termoBusca}
           onChangeText={setTermoBusca}
           clearButtonMode="while-editing"
@@ -241,6 +242,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+    color: '#000',
   },
   list: {
     paddingHorizontal: 20,

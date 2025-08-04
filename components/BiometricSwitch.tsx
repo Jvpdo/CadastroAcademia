@@ -107,7 +107,7 @@ export const BiometricSwitch: React.FC<{ email: string; }> = ({ email }) => {
                         <Text style={styles.modalText}>Para sua segurança, por favor, insira sua senha para ativar o login biométrico.</Text>
                         <TextInput
                             style={styles.modalInput}
-                            placeholder="Sua senha"
+                            placeholder="Sua senha" placeholderTextColor="#333" 
                             secureTextEntry
                             value={password}
                             onChangeText={setPassword}
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     modalContainer: { width: '100%', backgroundColor: 'white', borderRadius: 10, padding: 20, alignItems: 'center' },
     modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
     modalText: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },
-    modalInput: { width: '100%', borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, marginBottom: 15 },
+    modalInput: { width: '100%', borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, marginBottom: 15, color: '#000' },
     modalButton: { backgroundColor: '#007bff', padding: 12, borderRadius: 5, width: '100%', alignItems: 'center' },
     modalButtonDisabled: { backgroundColor: '#a1cfff' },
     modalButtonText: { color: 'white', fontWeight: 'bold' },

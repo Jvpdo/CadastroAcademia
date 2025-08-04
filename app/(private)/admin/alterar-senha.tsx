@@ -23,8 +23,6 @@ export default function AlterarSenhaScreen() {
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
   const [isConfirmarSenhaVisivel, setIsConfirmarSenhaVisivel] = useState(false);
-
-
   const [isSenhaAntigaVisivel, setIsSenhaAntigaVisivel] = useState(false);
   const [isNovaSenhaVisivel, setIsNovaSenhaVisivel] = useState(false);
 
@@ -139,6 +137,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
+    color: '#000',
   },
   lastInput: {
     borderWidth: 1,

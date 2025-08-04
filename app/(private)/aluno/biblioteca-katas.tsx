@@ -18,6 +18,7 @@ import {
   Linking,
 } from 'react-native'; 
 import { Ionicons } from '@expo/vector-icons'; 
+import { LinearGradient } from 'expo-linear-gradient';
 
 // --- Interfaces de Dados (sem alterações) ---
 interface Posicao {
@@ -106,18 +107,46 @@ export default function BibliotecaKatasScreen() {
 
   const renderPosicoes = (grupos: Grupo[]) => {
     if (!grupos) return null;
-    return grupos.map((gr) => (
-        <View key={gr.id}>
-            <Text style={styles.grupoTitle}>{gr.nome}</Text>
-            {gr.posicoes.map(p => (
-                <TouchableOpacity key={p.id} style={styles.posicaoItem} onPress={() => handleOpenVideo(p.video_url)}>
-                    <Text style={styles.posicaoText}>{p.nome}</Text>
-                    {p.video_url && (
-                        <Ionicons name="play-circle" size={24} color="#007bff" />
-                    )}
-                </TouchableOpacity>
-            ))}
-        </View>
+
+    // Define a ordem de exibição desejada para os grupos da categoria infantil.
+    const ordemGrupos = [
+	      'Ataque',
+	      'Defesa',
+	      'Queda e/ou parte em pé',
+        'Postura/Comportamento/Educativo',
+        'Posições/Golpes',
+        'Defesa pessoal',
+        'Teoria'
+    ];
+
+    // Cria uma cópia e ordena o array de grupos com base na lista de ordem.
+    const gruposOrdenados = [...grupos].sort((a, b) => {
+        const indexA = ordemGrupos.indexOf(a.nome);
+        const indexB = ordemGrupos.indexOf(b.nome);
+
+        // Mantém a ordem original para grupos que não estão na lista de ordenação.
+        if (indexA === -1 && indexB === -1) return 0;
+        // Coloca grupos não listados no final.
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+
+        // Ordena com base na posição na lista `ordemGrupos`.
+        return indexA - indexB;
+    });
+
+    // Renderiza a lista de grupos já ordenada.
+    return gruposOrdenados.map((gr) => (
+      <View key={gr.id}>
+        <Text style={styles.grupoTitle}>{gr.nome}</Text>
+        {gr.posicoes.map(p => (
+          <TouchableOpacity key={p.id} style={styles.posicaoItem} onPress={() => handleOpenVideo(p.video_url)}>
+            <Text style={styles.posicaoText}>{p.nome}</Text>
+            {p.video_url && (
+              <Ionicons name="play-circle" size={24} color="#007bff" />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
     ));
   };
 
@@ -130,6 +159,12 @@ export default function BibliotecaKatasScreen() {
   } 
 
   return ( 
+    <LinearGradient
+                    colors={['#f9f100', '#252403ff', '#222']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{flex: 1}}
+                  >
     <SafeAreaView style={styles.safeArea}> 
       <Stack.Screen options={{ title: 'Biblioteca de Katas' }} /> 
       <ScrollView contentContainerStyle={styles.container}> 
@@ -190,6 +225,7 @@ export default function BibliotecaKatasScreen() {
         ))}
       </ScrollView> 
     </SafeAreaView> 
+    </LinearGradient>
   ); 
 } 
 
@@ -197,7 +233,7 @@ export default function BibliotecaKatasScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#000000ff' // Fundo geral da tela
+     // Fundo geral da tela
   },
   container: {
     paddingBottom: 40, 
@@ -216,8 +252,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#f2f21fff',
-    marginBottom: 10,
+    marginBottom: 5,
     paddingLeft: 5,
+    backgroundColor: '#333',
+    alignSelf: 'flex-start',
   },
   acordeaoContainer: {
     backgroundColor: '#fff',

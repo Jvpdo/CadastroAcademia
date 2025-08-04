@@ -1,9 +1,11 @@
 import { Drawer } from 'expo-router/drawer';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 
 export default function AlunoLayout() {
+  const { colors } = useTheme();
   return (
-    <Drawer screenOptions={{ headerTintColor: '#f2f21fff' }}>
+    <Drawer screenOptions={{ headerTintColor: colors.text }}>
       <Drawer.Screen
         name="home" // Aponta para o arquivo que agora é o "Meu Painel"
         options={{

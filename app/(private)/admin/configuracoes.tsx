@@ -1,6 +1,6 @@
 // app/(private)/admin/configuracoes.tsx
 import { useAuth } from '@/context/AuthContext';
-import { api, BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -15,8 +15,10 @@ import {
     RefreshControl,
     ActivityIndicator,
     Button,
+    Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
+import * as Updates from 'expo-updates';
 
 // Interface para os dados do usuário
 interface UserData {
@@ -44,6 +46,11 @@ export default function ConfiguracoesAdminScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const [isChecking, setIsChecking] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const lastUpdateTime = Updates.createdAt ? new Date(Updates.createdAt).toLocaleString('pt-BR') : 'N/A';
 
     const fetchUserData = useCallback(async () => {
         if (!session) {
@@ -83,6 +90,33 @@ export default function ConfiguracoesAdminScreen() {
         router.push('/(private)/admin/alterar-senha');
     };
 
+    async function handleCheckForUpdate() {
+        setIsChecking(true);
+        try {
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+                Alert.alert('Atualização Disponível', 'Baixando nova versão...');
+                setIsDownloading(true);
+                await Updates.fetchUpdateAsync();
+                Alert.alert(
+                  'Atualização Pronta',
+                  'Deseja reiniciar o aplicativo agora para aplicar a nova versão?',
+                  [
+                    { text: 'Agora não', style: 'cancel' },
+                    { text: 'Reiniciar', onPress: () => Updates.reloadAsync() },
+                  ]
+                );
+            } else {
+                Alert.alert('Tudo Certo!', 'Você já está com a versão mais recente.');
+            }
+        } catch {
+            Alert.alert('Erro', 'Não foi possível verificar as atualizações. Verifique sua conexão com a internet.');
+        } finally {
+            setIsChecking(false);
+            setIsDownloading(false);
+        }
+    }
+
     if (isLoading) {
         return <View style={styles.centered}><ActivityIndicator size="large" color="#007bff" /></View>;
     }
@@ -107,7 +141,9 @@ export default function ConfiguracoesAdminScreen() {
         );
     }
 
-    const fotoUrl = userData.foto_path ? `${BASE_URL}/${userData.foto_path.replace(/\\/g, '/')}` : null;
+    const fotoUrl = userData.foto_path ;
+    const isUpdateLoading = isChecking || isDownloading;
+    const buttonTitle = isChecking ? "Verificando..." : isDownloading ? "Baixando..." : "Verificar Atualizações";
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -138,6 +174,28 @@ export default function ConfiguracoesAdminScreen() {
                 <View style={styles.section}>
                     <View style={styles.row}>
                         <BiometricSwitch email={user?.email || ''} />
+                    </View>
+                </View>
+
+                <Text style={styles.sectionTitle}>Aplicativo</Text>
+                <View style={styles.section}>
+                    <View style={styles.row}>
+                        <Ionicons name="cloud-download-outline" size={22} color="#666" />
+                        <View style={styles.updateContent}>
+                            <Text style={styles.rowText}>Versão</Text>
+                            <Text style={styles.updateDateText}>Instalada em: {lastUpdateTime}</Text>
+                        </View>
+                    </View>
+                    <View style={styles.updateButtonContainer}>
+                        {isUpdateLoading ? (
+                            <ActivityIndicator />
+                        ) : (
+                            <Button
+                                title={buttonTitle}
+                                onPress={handleCheckForUpdate}
+                                disabled={isUpdateLoading}
+                            />
+                        )}
                     </View>
                 </View>
                         
@@ -220,5 +278,16 @@ const styles = StyleSheet.create({
         color: 'red',
         marginBottom: 15,
         textAlign: 'center',
+    },
+    updateContent: {
+        flex: 1,
+        marginLeft: 15,
+    },
+    updateDateText: {
+        fontSize: 12,
+        color: '#888',
+    },
+    updateButtonContainer: {
+        padding: 15,
     },
 });

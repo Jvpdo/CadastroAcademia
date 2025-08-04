@@ -1,77 +1,26 @@
-// app/(private)/admin/gerenciar-katas.tsx (VERSÃO CORRIGIDA E TIPADA)
+// app/(private)/admin/gerenciar-katas.tsx
 
-import React, { useState, useEffect, useCallback } from 'react'; // CORREÇÃO: Adicionado useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  SafeAreaView
+  View, Text, TextInput, Button, ScrollView, StyleSheet, TouchableOpacity,
+  ActivityIndicator, Alert, RefreshControl, SafeAreaView, Linking, Modal,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-// CORREÇÃO: Usando alias de caminho. Verifique se o seu projeto usa '@' ou ajuste o caminho relativo.
 import { api } from '@/services/api'; 
 import { useAuth } from '@/context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
-// --- INTERFACES DE TIPO (Solução para erros de 'any' e 'never') ---
-interface Posicao {
-  id: number;
-  nome: string;
-  video_url?: string;
-}
+// --- Interfaces de Tipo ---
+interface Posicao { id: number; nome: string; video_url?: string; }
+interface Grupo { id: number; nome: string; posicoes: Posicao[]; }
+interface Grau { grau: number; titulo: string; grupos: Grupo[]; }
+interface Faixa { id: number; nome: string; nome_faixa?: string; faixa_pai_id: number | null; graus: Grau[]; sub_faixas: Faixa[]; }
+interface Categoria { id: number; nome: string; faixas: Faixa[]; }
+interface FormFaixa { id: number; nome_faixa: string; }
+interface FormGrupo { id: number; nome_grupo: string; }
 
-interface Grupo {
-  id: number;
-  nome: string;
-  posicoes: Posicao[];
-}
-
-interface Grau {
-  grau: number;
-  titulo: string;
-  grupos: Grupo[];
-}
-
-interface Faixa {
-  id: number;
-  nome: string; // Nome da faixa principal ou sub-faixa
-  nome_faixa?: string; // Nome usado no formulário
-  faixa_pai_id: number | null;
-  graus: Grau[];
-  sub_faixas: Faixa[];
-}
-
-interface Categoria {
-  id: number;
-  nome: string;
-  faixas: Faixa[];
-}
-
-interface FormFaixa {
-    id: number;
-    nome_faixa: string;
-}
-
-interface FormGrupo {
-    id: number;
-    nome_grupo: string;
-}
-
-// --- Componentes Tipados ---
-const PosicaoItem = ({ posicao, onDelete }: { posicao: Posicao, onDelete: (id: number) => void }) => (
-  <View style={styles.posicaoItem}>
-    <Text style={styles.posicaoTexto}>{posicao.nome}</Text>
-    <TouchableOpacity onPress={() => onDelete(posicao.id)} style={styles.deleteButton}>
-      <Text style={styles.deleteButtonText}>&times;</Text>
-    </TouchableOpacity>
-  </View>
-);
+// --- Componentes Internos ---
 
 const AcordeaoItem = ({ title, children }: { title: string, children: React.ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -86,10 +35,11 @@ const AcordeaoItem = ({ title, children }: { title: string, children: React.Reac
   );
 };
 
-const GerenciarKatasScreen = () => {
-  const { session  } = useAuth();
+// --- Tela Principal ---
 
-  // CORREÇÃO: Estados tipados
+const GerenciarKatasScreen = () => {
+  const { session } = useAuth();
+  
   const [biblioteca, setBiblioteca] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,41 +54,91 @@ const GerenciarKatasScreen = () => {
   const [videoUrl, setVideoUrl] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
+  // Estados para controlar o Modal de edição de vídeo
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingPosition, setEditingPosition] = useState<Posicao | null>(null);
+  const [modalVideoUrl, setModalVideoUrl] = useState('');
 
-  // CORREÇÃO: Usando useCallback para a função de carregamento
   const loadData = useCallback(async () => {
-    if (!session ) return;
+    if (!session) return;
     try {
-      setLoading(true);
+      if (!refreshing) setLoading(true);
       const [bibliotecaData, adminData] = await Promise.all([
-        api.getKataBiblioteca(session ),
-        api.getKataAdminData(session ),
+        api.getKataBiblioteca(session),
+        api.getKataAdminData(session),
       ]);
       setBiblioteca(bibliotecaData);
       setFormFaixas(adminData.faixas);
       setFormGrupos(adminData.grupos);
+      if (adminData.faixas.length > 0 && !selectedFaixa) setSelectedFaixa(String(adminData.faixas[0].id));
+      if (adminData.grupos.length > 0 && !selectedGrupo) setSelectedGrupo(String(adminData.grupos[0].id));
       setError(null);
     } catch (err) {
       setError('Falha ao carregar os dados. Tente novamente.');
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [session ]);
+  }, [session, refreshing, selectedFaixa, selectedGrupo]);
 
-  // CORREÇÃO: Adicionando 'loadData' como dependência do useEffect
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const handleRefresh = async () => {
-  try {
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    await loadData();
-  } finally {
-    setRefreshing(false);
-  }
-};
+  }, []);
+
+  useEffect(() => {
+    if (refreshing) {
+      loadData();
+    }
+  }, [refreshing, loadData]);
+  
+  // --- LÓGICA DE ATUALIZAÇÃO E EDIÇÃO DO VÍDEO (COM MODAL) ---
+
+  const handleOpenVideoEditor = (posicao: Posicao) => {
+    setEditingPosition(posicao);
+    setModalVideoUrl(posicao.video_url || '');
+    setIsModalVisible(true);
+  };
+
+  const handleSaveVideoUrl = async () => {
+    if (!editingPosition) return;
+    try {
+      await api.updateKataPosicaoVideo(editingPosition.id, modalVideoUrl, session);
+      Alert.alert('Sucesso!', 'O link do vídeo foi atualizado.');
+      setIsModalVisible(false);
+      setEditingPosition(null);
+      handleRefresh();
+    } catch (err) {
+      Alert.alert('Erro', (err as Error).message || 'Não foi possível salvar o link.');
+    }
+  };
+
+  const handleVideoAction = (posicao: Posicao) => {
+    if (posicao.video_url) {
+      Alert.alert(
+        'Vídeo da Posição',
+        'O que você gostaria de fazer?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Abrir Vídeo', onPress: () => Linking.openURL(posicao.video_url!).catch(() => Alert.alert('Erro', 'Não foi possível abrir o link.'))},
+          { text: 'Editar Link', onPress: () => handleOpenVideoEditor(posicao) },
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Adicionar Vídeo',
+        'Deseja adicionar um link de vídeo para esta posição?',
+        [
+          { text: 'Não', style: 'cancel' },
+          { text: 'Sim, Adicionar', onPress: () => handleOpenVideoEditor(posicao) },
+        ]
+      );
+    }
+  };
 
   const handleAddPosicao = async () => {
     if (!selectedFaixa || !selectedGrupo || !nomePosicao) {
@@ -154,39 +154,31 @@ const GerenciarKatasScreen = () => {
       video_url: videoUrl,
     };
     try {
-      await api.addKataPosicao(dadosPosicao, session );
+      await api.addKataPosicao(dadosPosicao, session);
       Alert.alert('Sucesso', 'Posição adicionada com sucesso!');
-      
-      setSelectedFaixa('');
-      setSelectedGrupo('');
       setNomePosicao('');
       setTituloGrau('');
       setGrau('');
       setVideoUrl('');
-      loadData();
+      handleRefresh();
     } catch (err) {
       Alert.alert('Erro', (err as Error).message || 'Não foi possível adicionar a posição.');
-      console.error(err);
     }
   };
 
   const handleDeletePosicao = (posicaoId: number) => {
-    Alert.alert(
-      'Confirmar Exclusão',
-      `Tem certeza que deseja deletar a posição ID ${posicaoId}?`,
+    Alert.alert('Confirmar Exclusão', `Tem certeza que deseja deletar esta posição?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Deletar',
-          style: 'destructive',
+          text: 'Deletar', style: 'destructive',
           onPress: async () => {
             try {
-              await api.deleteKataPosicao(posicaoId, session );
-              Alert.alert('Sucesso', 'Posição deletada com sucesso!');
-              loadData();
+              await api.deleteKataPosicao(posicaoId, session);
+              Alert.alert('Sucesso', 'Posição deletada!');
+              handleRefresh();
             } catch (err) {
-              Alert.alert('Erro', (err as Error).message || 'Não foi possível deletar a posição.');
-              console.error(err);
+              Alert.alert('Erro', (err as Error).message);
             }
           },
         },
@@ -194,256 +186,207 @@ const GerenciarKatasScreen = () => {
     );
   };
   
-  // CORREÇÃO: Função tipada
   const renderPosicoes = (grupos: Grupo[]) => {
     if (!grupos) return null;
-    return grupos.map((grupo) => (
+    const ordemGrupos = ['Ataque', 'Defesa', 'Queda e/ou parte em pé', 'Postura/Comportamento/Educativo', 'Posições/Golpes', 'Defesa pessoal', 'Teoria'];
+    const gruposOrdenados = [...grupos].sort((a, b) => {
+        const indexA = ordemGrupos.indexOf(a.nome);
+        const indexB = ordemGrupos.indexOf(b.nome);
+        if (indexA === -1 && indexB === -1) return 0;
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+    });
+    return gruposOrdenados.map((grupo) => (
       <View key={grupo.id}>
         <Text style={styles.grupoTitle}>{grupo.nome}</Text>
         {grupo.posicoes.map((posicao) => (
-          <PosicaoItem key={posicao.id} posicao={posicao} onDelete={handleDeletePosicao} />
+          <PosicaoItem 
+            key={posicao.id} 
+            posicao={posicao} 
+            onDelete={handleDeletePosicao}
+            onVideoAction={handleVideoAction}
+          />
         ))}
       </View>
     ));
   }
 
+  const PosicaoItem = ({ posicao, onDelete, onVideoAction }: { posicao: Posicao, onDelete: (id: number) => void, onVideoAction: (posicao: Posicao) => void }) => (
+    <View style={styles.posicaoItem}>
+      <TouchableOpacity style={styles.posicaoClickableArea} onPress={() => onVideoAction(posicao)}>
+        <Text style={styles.posicaoTexto}>{posicao.nome}</Text>
+        <Ionicons 
+          name={posicao.video_url ? "play-circle" : "add-circle-outline"} 
+          size={24} 
+          color={posicao.video_url ? "#007bff" : "#ccc"}
+          style={styles.playIcon} 
+        />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={() => onDelete(posicao.id)} style={styles.deleteButton}>
+        <Text style={styles.deleteButtonText}>&times;</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (loading) {
     return <ActivityIndicator size="large" style={styles.centered} />;
   }
-
   if (error) {
-    return (
-      <View style={styles.centered}>
-        <Text>{error}</Text>
-        <Button title="Tentar Novamente" onPress={loadData} />
-      </View>
-    );
+    return <View style={styles.centered}><Text>{error}</Text><Button title="Tentar Novamente" onPress={loadData} /></View>;
   }
 
   return (
-        <SafeAreaView style={styles.safeArea}>
-  <ScrollView
-    style={styles.container}
-    refreshControl={
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        colors={['#2196F3']} // Android
-        tintColor="#2196F3" // iOS
-      />
-    }
-  >
-
-      <View style={styles.formContainer}>
-        <Text style={styles.formTitle}>Adicionar Nova Posição</Text>
-        <Picker selectedValue={selectedFaixa} onValueChange={(itemValue) => setSelectedFaixa(itemValue)} style={styles.picker}>
-            <Picker.Item label="Selecione uma faixa..." value="" />
-            {formFaixas.map((faixa) => (
-              <Picker.Item key={faixa.id} label={faixa.nome_faixa} value={String(faixa.id)} />
-            ))}
-        </Picker>
-        <Picker selectedValue={selectedGrupo} onValueChange={(itemValue) => setSelectedGrupo(itemValue)} style={styles.picker}>
-           <Picker.Item label="Selecione um grupo..." value="" />
-           {formGrupos.map((grupo) => (
-             <Picker.Item key={grupo.id} label={grupo.nome_grupo} value={String(grupo.id)} />
-           ))}
-        </Picker>
-        <TextInput style={styles.input} placeholder="Nome da Posição" value={nomePosicao} onChangeText={setNomePosicao} />
-        <TextInput style={styles.input} placeholder="Grau (ex: 1, 2...)" value={grau} onChangeText={setGrau} keyboardType="numeric" />
-        <TextInput style={styles.input} placeholder="Título do Grau (opcional)" value={tituloGrau} onChangeText={setTituloGrau} />
-        <TextInput style={styles.input} placeholder="URL do Vídeo (opcional)" value={videoUrl} onChangeText={setVideoUrl} />
-        <Button title="Adicionar Posição" onPress={handleAddPosicao} />
-      </View>
-      
-      <View style={styles.separator} />
-
-      {biblioteca.map((categoria) => (
-        <View key={categoria.id} style={styles.categoriaContainer}>
-          <Text style={styles.categoriaTitle}>{categoria.nome}</Text>
-          {categoria.faixas.map((faixa) => {
-            const nomeCategoria = categoria.nome.toLowerCase();
-
-            if (nomeCategoria.includes('infantil')) {
-                const faixasInfantisDesejadas = ['cinza', 'amarela', 'laranja', 'verde'];
-                if (!faixasInfantisDesejadas.includes(faixa.nome.toLowerCase())) return null;
-
-                const baseName = faixa.nome;
-                const subFaixaBranca = faixa.sub_faixas.find(sf => sf.nome.toLowerCase().includes('branca'));
-                const subFaixaPreta = faixa.sub_faixas.find(sf => sf.nome.toLowerCase().includes('preta'));
-                
-                return (
-                    <AcordeaoItem key={faixa.id} title={faixa.nome}>
-                        {subFaixaBranca && (
-                          <AcordeaoItem title={subFaixaBranca.nome}>
-                            {subFaixaBranca.graus.map(g => renderPosicoes(g.grupos))}
-                          </AcordeaoItem>
-                        )}
-                        <AcordeaoItem title={`Toda ${baseName}`}>
-                           {faixa.graus.map(g => renderPosicoes(g.grupos))}
-                        </AcordeaoItem>
-                        {subFaixaPreta && (
-                          <AcordeaoItem title={subFaixaPreta.nome}>
-                            {subFaixaPreta.graus.map(g => renderPosicoes(g.grupos))}
-                          </AcordeaoItem>
-                        )}
-                    </AcordeaoItem>
-                );
-            }
+    <LinearGradient colors={['#f9f100', '#252403ff', '#222']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{flex: 1}}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
             
-            if (nomeCategoria.includes('adulto')) {
-                const faixasAdultoDesejadas = ['branca', 'azul', 'roxa', 'marrom'];
-                if (!faixasAdultoDesejadas.includes(faixa.nome.toLowerCase())) return null;
+            <Modal
+                transparent={true}
+                visible={isModalVisible}
+                onRequestClose={() => setIsModalVisible(false)}
+                animationType="fade"
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Editar Link do Vídeo</Text>
+                        <Text style={styles.modalSubtitle}>Para: {editingPosition?.nome}</Text>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="Cole a URL do vídeo aqui"
+                            placeholderTextColor="#999"
+                            value={modalVideoUrl}
+                            onChangeText={setModalVideoUrl}
+                        />
+                        <View style={styles.modalButtonRow}>
+                            <Button title="Cancelar" onPress={() => setIsModalVisible(false)} color="#6c757d" />
+                            <View style={{ width: 10 }} />
+                            <Button title="Salvar" onPress={handleSaveVideoUrl} />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
-                return (
-                  <AcordeaoItem key={faixa.id} title={faixa.nome}>
-                    {faixa.graus
-                      .sort((a,b) => a.grau - b.grau)
-                      .map((grauItem) => (
-                        <AcordeaoItem key={grauItem.grau} title={grauItem.titulo}>
-                          {renderPosicoes(grauItem.grupos)}
+          <View style={styles.formContainer}>
+            <Text style={styles.formTitle}>Adicionar Nova Posição</Text>
+            <Picker selectedValue={selectedFaixa} onValueChange={(itemValue) => setSelectedFaixa(itemValue)} style={styles.picker}>
+                <Picker.Item label="Selecione uma faixa..." value="" />
+                {formFaixas.map((faixa) => ( <Picker.Item key={faixa.id} label={faixa.nome_faixa} value={String(faixa.id)} /> ))}
+            </Picker>
+            <Picker selectedValue={selectedGrupo} onValueChange={(itemValue) => setSelectedGrupo(itemValue)} style={styles.picker}>
+               <Picker.Item label="Selecione um grupo..." value="" />
+               {formGrupos.map((grupo) => ( <Picker.Item key={grupo.id} label={grupo.nome_grupo} value={String(grupo.id)} /> ))}
+            </Picker>
+            <TextInput style={styles.input} placeholder="Nome da Posição" placeholderTextColor="#888" value={nomePosicao} onChangeText={setNomePosicao} />
+            <TextInput style={styles.input} placeholder="Grau (ex: 1, 2...)" placeholderTextColor="#888" value={grau} onChangeText={setGrau} keyboardType="numeric" />
+            <TextInput style={styles.input} placeholder="Título do Grau (opcional)" placeholderTextColor="#888" value={tituloGrau} onChangeText={setTituloGrau} />
+            <TextInput style={styles.input} placeholder="URL do Vídeo (opcional)" placeholderTextColor="#888" value={videoUrl} onChangeText={setVideoUrl} />
+            <Button title="Adicionar Posição" onPress={handleAddPosicao} />
+          </View>
+          
+          <View style={styles.separator} />
+
+          {biblioteca.map((categoria) => (
+            <View key={categoria.id} style={styles.categoriaContainer}>
+              <Text style={styles.categoriaTitle}>{categoria.nome}</Text>
+              {categoria.faixas.map((faixa) => {
+                const nomeCategoria = categoria.nome.toLowerCase();
+                if (nomeCategoria.includes('infantil')) {
+                    const faixasInfantisDesejadas = ['cinza', 'amarela', 'laranja', 'verde'];
+                    if (!faixasInfantisDesejadas.includes(faixa.nome.toLowerCase())) return null;
+                    const baseName = faixa.nome;
+                    const subFaixaBranca = faixa.sub_faixas.find(sf => sf.nome.toLowerCase().includes('branca'));
+                    const subFaixaPreta = faixa.sub_faixas.find(sf => sf.nome.toLowerCase().includes('preta'));
+                    return (
+                        <AcordeaoItem key={faixa.id} title={faixa.nome}>
+                            {subFaixaBranca && ( <AcordeaoItem title={subFaixaBranca.nome}> {subFaixaBranca.graus.map(g => renderPosicoes(g.grupos))} </AcordeaoItem> )}
+                            <AcordeaoItem title={`Toda ${baseName}`}> {faixa.graus.map(g => renderPosicoes(g.grupos))} </AcordeaoItem>
+                            {subFaixaPreta && ( <AcordeaoItem title={subFaixaPreta.nome}> {subFaixaPreta.graus.map(g => renderPosicoes(g.grupos))} </AcordeaoItem> )}
                         </AcordeaoItem>
-                    ))}
-                  </AcordeaoItem>
-                );
-            }
-
-            return null;
-          })}
-        </View>
-      ))}
-    </ScrollView>
-        </SafeAreaView>
-
+                    );
+                }
+                if (nomeCategoria.includes('adulto')) {
+                    const faixasAdultoDesejadas = ['branca', 'azul', 'roxa', 'marrom'];
+                    if (!faixasAdultoDesejadas.includes(faixa.nome.toLowerCase())) return null;
+                    return (
+                      <AcordeaoItem key={faixa.id} title={faixa.nome}>
+                        {faixa.graus.sort((a,b) => a.grau - b.grau).map((grauItem) => (
+                            <AcordeaoItem key={grauItem.grau} title={grauItem.titulo}>
+                              {renderPosicoes(grauItem.grupos)}
+                            </AcordeaoItem>
+                        ))}
+                      </AcordeaoItem>
+                    );
+                }
+                return null;
+              })}
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
-// ... (os estilos permanecem os mesmos)
 const styles = StyleSheet.create({
-  safeArea: {
-        flex: 1,
-        backgroundColor: '#000000ff' 
-    },
-
-  container: {
+  safeArea: { flex: 1 },
+  container: { flex: 1, paddingBottom: 40 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  formContainer: { padding: 15, backgroundColor: '#f9f9f9', borderRadius: 8, margin: 10, borderWidth: 1, borderColor: '#eee' },
+  formTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: '#333' },
+  picker: { marginBottom: 10, borderWidth: 1, borderColor: '#ddd', borderRadius: 5, backgroundColor: '#fff', color: '#333' },
+  input: { borderWidth: 1, borderColor: '#ddd', padding: 10, borderRadius: 5, marginBottom: 10, backgroundColor: '#fff', color: '#333' },
+  separator: { height: 2, backgroundColor: '#eee', marginVertical: 10 },
+  categoriaContainer: { marginBottom: 20, paddingHorizontal: 10 },
+  categoriaTitle: { fontSize: 22, fontWeight: 'bold', color: '#f2f21fff', marginBottom: 10, backgroundColor: '#333', alignSelf: 'flex-start', padding: 5, borderRadius: 5 },
+  acordeaoContainer: { backgroundColor: '#fff', borderRadius: 5, marginBottom: 5, overflow: 'hidden', borderWidth: 1, borderColor: '#e7e7e7' },
+  acordeaoHeader: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f7f7f7' },
+  acordeaoTitle: { fontSize: 16, fontWeight: '600', color: '#333', flexShrink: 1 },
+  acordeaoIcon: { fontSize: 18, fontWeight: 'bold' },
+  acordeaoContent: { paddingLeft: 15, borderTopWidth: 1, borderTopColor: '#e7e7e7' },
+  grupoTitle: { fontSize: 15, fontWeight: 'bold', color: '#555', marginTop: 10, marginBottom: 5, paddingHorizontal: 10, backgroundColor: '#f0f0f0', paddingVertical: 5 },
+  posicaoItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, backgroundColor: '#fafafa', borderBottomWidth: 1, borderColor: '#f0f0f0' },
+  posicaoClickableArea: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
+  posicaoTexto: { fontSize: 14, flex: 1, color: '#333' },
+  playIcon: { marginLeft: 10 },
+  deleteButton: { backgroundColor: '#ff4d4d', borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
+  deleteButtonText: { color: 'white', fontSize: 20, fontWeight: 'bold', lineHeight: 30 },
+  // --- NOVOS ESTILOS PARA O MODAL ---
+  modalOverlay: {
     flex: 1,
-  },
-  centered: {
-    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
     padding: 20,
+    borderRadius: 10,
+    width: '90%',
+    alignItems: 'stretch',
   },
-  formContainer: {
-    padding: 15,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    margin: 10,
-    borderWidth: 1,
-    borderColor: '#eee'
-  },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  picker: {
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    backgroundColor: '#fff',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-    backgroundColor: '#fff',
-  },
-  separator: {
-    height: 2,
-    backgroundColor: '#eee',
-    marginVertical: 10,
-  },
-  categoriaContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  categoriaTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#f2f21fff',
-    marginBottom: 10,
-  },
-  acordeaoContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    marginBottom: 5,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e7e7e7'
-  },
-  acordeaoHeader: {
-    padding: 15,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f7f7f7',
-  },
-  acordeaoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    flexShrink: 1, // Permite que o texto quebre a linha se necessário
-  },
-  acordeaoIcon: {
+  modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
-  acordeaoContent: {
-    paddingLeft: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#e7e7e7',
-  },
-  grupoTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#555',
-    marginTop: 10,
-    marginBottom: 5,
-    paddingHorizontal: 10,
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 5,
-  },
-  posicaoItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    backgroundColor: '#fafafa',
-    borderBottomWidth: 1,
-    borderColor: '#f0f0f0',
-  },
-  posicaoTexto: {
+  modalSubtitle: {
     fontSize: 14,
-    flex: 1,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 15,
   },
-  deleteButton: {
-    backgroundColor: '#ff4d4d',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 20,
   },
-  deleteButtonText: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
-    lineHeight: 30
-  }
+  modalButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
 });
 
 export default GerenciarKatasScreen;

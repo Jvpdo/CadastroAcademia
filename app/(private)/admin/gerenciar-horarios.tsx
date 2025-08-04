@@ -272,7 +272,7 @@ export default function GerenciarHorariosScreen() {
                     <View style={styles.formContainer}>
                         <Text style={styles.label}>Adicionar Horário à Grade (HH:MM)</Text>
                         <View style={styles.addHorarioContainer}>
-                            <MaskInput style={[styles.input, {flex: 1}]} value={novoHorarioFixo} onChangeText={setNovoHorarioFixo} mask={[/\d/,/\d/,':',/\d/,/\d/]} placeholder="HH:MM" keyboardType="numeric"/>
+                            <MaskInput style={[styles.input, {flex: 1}]} value={novoHorarioFixo} onChangeText={setNovoHorarioFixo} mask={[/\d/,/\d/,':',/\d/,/\d/]} placeholder="HH:MM" placeholderTextColor="#333" keyboardType="numeric" />
                             <Button title="Adicionar" onPress={handleAddHorarioFixo} />
                         </View>
                     </View>
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     modalContainer: { width: '90%', backgroundColor: '#fff', padding: 20, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.15, shadowOffset: { width: 0, height: 4 }, shadowRadius: 10, elevation: 10 },
     modalInfo: { fontSize: 16, color: '#6c757d', marginBottom: 20, textTransform: 'capitalize' },
     modalButtonContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10 },
-    tabelaContainer: { backgroundColor: '#fff', padding: 6, paddingHorizontal: 5, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65, elevation: 8, marginBottom: 24, },
+    tabelaContainer: { backgroundColor: '#ffffffff', padding: 6, paddingHorizontal: 5, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 4.65, elevation: 8, marginBottom: 24, },
     button: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#007bff', paddingVertical: 10, paddingHorizontal: 15, borderRadius: 8, elevation: 2, },
     buttonText: { color: '#fff', fontSize: 16, fontWeight: '600', },
 });

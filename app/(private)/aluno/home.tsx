@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
-import { api, BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import { Stack } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -81,6 +81,16 @@ export default function AlunoHomeScreen() {
     }
   };
 
+  const formatarTelefone = (telefone: string): string => {
+  const numeros = telefone.replace(/\D/g, '');
+  if (numeros.length === 11) {
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
+  } else if (numeros.length === 10) {
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`;
+  }
+  return telefone;
+};
+
   // Age calculation function (no changes)
   const calcularIdade = (dataNasc: string): string => {
     if (!dataNasc) return 'N/A';
@@ -119,7 +129,7 @@ export default function AlunoHomeScreen() {
     );
   }
   
-  const fotoUrl = aluno.foto_path ? `${BASE_URL}/${aluno.foto_path.replace(/\\/g, '/')}` : null;
+  const fotoUrl = aluno.foto_path ;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -149,7 +159,7 @@ export default function AlunoHomeScreen() {
           <View style={styles.infoBox}>
             <InfoRow label="Plano:" value={aluno.plano || 'N/A'} />
             <InfoRow label="Email:" value={aluno.email || 'N/A'} />
-            <InfoRow label="Telefone:" value={aluno.telefone || 'N/A'} />
+            <InfoRow label="Telefone:" value={formatarTelefone(aluno.telefone) || 'N/A'} />
             <InfoRow label="Idade:" value={`${calcularIdade(aluno.dataNascimento)} anos`} />
           </View>
         </View>

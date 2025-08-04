@@ -37,7 +37,7 @@ export default function HistoricoCheckinScreen() {
   const [dataManual, setDataManual] = useState(''); // Para o input de data
 
   const fetchHistorico = useCallback(async (page: number) => {
-    if (!alunoId) return;
+    if (!alunoId || !session) return;
     setIsLoading(true);
     try {
       const data = await api.getHistoricoAluno(alunoId, page, session);
@@ -51,8 +51,15 @@ export default function HistoricoCheckinScreen() {
   }, [alunoId, session]);
 
   useEffect(() => {
+  if (session) {
     fetchHistorico(currentPage);
-  }, [currentPage, fetchHistorico]);
+  } else {
+    // Se não estiver autenticado, limpa histórico e evita mostrar mensagem
+    setHistorico([]);
+    setPagination(null);
+    setIsLoading(false);
+  }
+}, [currentPage, fetchHistorico, session]);
 
   const handleAddCheckin = async () => {
     const formatarDataParaAPI = (data: string) => {
@@ -60,7 +67,7 @@ export default function HistoricoCheckinScreen() {
         const dia = data.substring(0, 2);
         const mes = data.substring(2, 4);
         const ano = data.substring(4, 8);
-        return `${ano}-${mes}-${dia}`;
+        return `${ano}-${mes}-${dia}T12:00:00`;
     };
     const dataFormatada = formatarDataParaAPI(dataManual);
     if (!dataFormatada) {
@@ -116,7 +123,7 @@ export default function HistoricoCheckinScreen() {
           value={dataManual}
           onChangeText={(masked, unmasked) => setDataManual(unmasked)}
           mask={[/\d/, /\d/, '/', /\d/, /\d/, '/', /\d/, /\d/, /\d/, /\d/]}
-          placeholder="DD/MM/AAAA"
+          placeholder="DD/MM/AAAA" placeholderTextColor={'#333'}
           keyboardType="numeric"
         />
         <Button title="Adicionar" onPress={handleAddCheckin} />
@@ -131,15 +138,83 @@ export default function HistoricoCheckinScreen() {
             ListEmptyComponent={<Text style={styles.emptyText}>Nenhum check-in encontrado.</Text>}
         />
       )}
+      {pagination && pagination.totalPages > 1 && (
+  <View style={styles.paginationContainer}>
+    <TouchableOpacity
+      onPress={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+      style={[styles.pageButton, currentPage === 1 && styles.disabledButton]}
+    >
+      <Text style={styles.pageButtonText}>Anterior</Text>
+    </TouchableOpacity>
+
+    <Text style={styles.pageInfo}>
+      Página {currentPage} de {pagination.totalPages}
+    </Text>
+
+    <TouchableOpacity
+      onPress={() => setCurrentPage((prev) => Math.min(prev + 1, pagination.totalPages))}
+      disabled={currentPage === pagination.totalPages}
+      style={[styles.pageButton, currentPage === pagination.totalPages && styles.disabledButton]}
+    >
+      <Text style={styles.pageButtonText}>Próxima</Text>
+    </TouchableOpacity>
+  </View>
+)}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8f9fa' },
-  formContainer: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#dee2e6' },
+  paginationContainer: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 20,
+  gap: 10,
+},
+
+pageButton: {
+  backgroundColor: '#007bff',
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  borderRadius: 5,
+},
+
+disabledButton: {
+  backgroundColor: '#adb5bd',
+},
+
+pageButtonText: {
+  color: '#fff',
+  fontWeight: 'bold',
+},
+
+pageInfo: {
+  fontSize: 16,
+  color: '#333',
+},
+  safeArea: { 
+  flex: 1, 
+  backgroundColor: '#f8f9fa' 
+  },
+  formContainer: 
+  { padding: 20, 
+    backgroundColor: '#fff', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#dee2e6' 
+  },
   formTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  input: { height: 45, borderColor: '#ccc', borderWidth: 1, borderRadius: 4, paddingHorizontal: 10, marginBottom: 10, backgroundColor: '#fff' },
+  input: { 
+    height: 45, 
+    borderColor: '#ccc', 
+    borderWidth: 1, 
+    borderRadius: 4, 
+    paddingHorizontal: 10, 
+    marginBottom: 10, 
+    backgroundColor: '#fff',
+    color: '#333' 
+  },
   list: { padding: 20 },
   itemContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 8, marginBottom: 10, elevation: 1 },
   itemText: { fontSize: 16 },

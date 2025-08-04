@@ -1,5 +1,5 @@
 import { useAuth } from '@/context/AuthContext';
-import { api, BASE_URL } from '@/services/api';
+import { api } from '@/services/api';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -39,7 +39,7 @@ export default function EditarPerfilScreen() {
       const dados = await api.getMeusDados(session);
       setTelefone(dados.telefone || '');
       if (dados.foto_path) {
-        setFotoAtualUrl(`${BASE_URL}/${dados.foto_path.replace(/\\/g, '/')}`);
+        setFotoAtualUrl(dados.foto_path);
       }
     } catch (err: any) {
       setError(err.message || 'Não foi possível carregar seus dados.');
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
   section: { backgroundColor: '#fff', padding: 20, borderRadius: 10, marginBottom: 20 },
   label: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10 },
-  input: { height: 50, fontSize: 16, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, paddingHorizontal: 15 },
+  input: { height: 50, fontSize: 16, borderWidth: 1, borderColor: '#ccc', borderRadius: 5, paddingHorizontal: 15, color: '#333' },
   buttonContainer: { marginTop: 15 },
   imageContainer: { alignItems: 'center', paddingVertical: 10 },
   profileImage: { width: 120, height: 120, borderRadius: 60, marginBottom: 20, backgroundColor: '#e9ecef' },
