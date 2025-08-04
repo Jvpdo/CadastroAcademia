@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 
 async function gerarHash() {
-    const senhaPlana = 'admin123'; // Defina uma senha de teste fácil de lembrar
+    const senhaPlana = 'Teste123'; // Defina uma senha de teste fácil de lembrar
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(senhaPlana, salt);
 

@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const fs = require('fs');
 const app = express();
-const port = process.env.PORT || 3000; // Adapta para ambientes em nuvem
+const port = process.env.PORT || 3000;
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 require('dotenv').config();
@@ -50,9 +50,9 @@ testConnection();
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'fotos_alunos', // Nome da pasta no Cloudinary onde as fotos ficarão
-    format: async (req, file) => 'jpg', // Formato desejado do arquivo
-    public_id: (req, file) => `foto-${Date.now()}`, // Gera um nome de arquivo único
+    folder: 'fotos_alunos',
+    format: async (req, file) => 'jpg', 
+    public_id: (req, file) => `foto-${Date.now()}`, 
   },
 });
 
@@ -64,8 +64,6 @@ const fileFilter = (req, file, cb) => {
         cb(new Error('Apenas arquivos de imagem são permitidos!'), false);
     }
 };
-
-// Cria a instância do multer com a configuração de armazenamento e filtro
 const upload = multer({ storage: storage });
 
 // --- Fim da Configuração do Multer ---
@@ -73,23 +71,17 @@ const upload = multer({ storage: storage });
 // Middleware para proteger rotas e verificar permissão
 const protegerRota = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Formato "Bearer TOKEN"
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (token == null) {
-        // 401 Unauthorized - Não enviou o token
         return res.status(401).json({ error: 'Acesso negado. Token não fornecido.' });
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, usuario) => {
         if (err) {
-            // 403 Forbidden - Token inválido ou expirado
             return res.status(403).json({ error: 'Token inválido.' });
-        }
-        
-        // Anexa os dados do usuário (payload do token) na requisição
-        req.usuario = usuario; 
-        
-        // Passa para a próxima função (a rota em si)
+        }        
+        req.usuario = usuario;         
         next(); 
     });
 };
@@ -103,15 +95,11 @@ app.get('/', (req, res) => {
 });
 
 // Criar novo aluno
-// Usamos 'upload.single('foto')' para processar um único arquivo do campo com name="foto"
 app.post('/alunos', protegerRota, upload.single('foto'), async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado. Apenas administradores.' });
     }
-
-    // Os dados de texto vêm em req.body
     const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, senha } = req.body;
-    // Os dados do arquivo vêm em req.file
     const fotoPath = req.file ? req.file.path : null; 
 
     let conn;
@@ -124,8 +112,6 @@ app.post('/alunos', protegerRota, upload.single('foto'), async (req, res) => {
 
         const salt = await bcrypt.genSalt(10);
         const senhaHash = await bcrypt.hash(senha, salt);
-
-        // A query de inserção agora inclui o caminho da foto
         const result = await conn.query(
             `INSERT INTO alunos (nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, senha, foto_path)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -152,7 +138,6 @@ app.post('/login', async (req, res) => {
     let conn;
 
     try {
-        // Validação básica
         if (!email || !senha) {
             return res.status(400).json({ error: 'Por favor, forneça email e senha.' });
         }
@@ -162,7 +147,6 @@ app.post('/login', async (req, res) => {
         // 1. Encontrar o usuário pelo email
         const [aluno] = await conn.query('SELECT * FROM alunos WHERE email = ?', [email]);
         if (!aluno) {
-            // Usamos uma mensagem genérica por segurança
             return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
 
@@ -181,10 +165,9 @@ app.post('/login', async (req, res) => {
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
-            expiresIn: '8h' // Token expira em 8 horas
+            expiresIn: '8h' 
         });
         
-        // Login bem-sucedido!
         res.json({ 
             message: 'Login realizado com sucesso!',
             token: token, 
@@ -207,9 +190,9 @@ app.get('/alunos', protegerRota, async (req, res) => {
     try {
         // Pega os parâmetros da URL: ?nome=joao&page=1&limit=10
         const { nome } = req.query;
-        const page = parseInt(req.query.page) || 1; // Página atual, padrão é 1
-        const limit = parseInt(req.query.limit) || 10; // 10 alunos por página, como você pediu
-        const offset = (page - 1) * limit; // Calcula o deslocamento para a consulta SQL
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
 
         conn = await pool.getConnection();
 
@@ -235,7 +218,6 @@ app.get('/alunos', protegerRota, async (req, res) => {
             ORDER BY nome ASC 
             LIMIT ? OFFSET ?
         `;
-        // Adiciona os parâmetros de paginação
         params.push(limit, offset);
 
         const rows = await conn.query(dataQuery, params);
@@ -267,7 +249,6 @@ app.put('/alunos/:id', protegerRota, async (req, res) => {
     let conn;
     try {
         const alunoId = req.params.id;
-        // Agora pegamos a 'senha' do corpo da requisição também
         const { nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, senha } = req.body;
 
         if (!nome || !email) {
@@ -288,8 +269,8 @@ app.put('/alunos/:id', protegerRota, async (req, res) => {
             const salt = await bcrypt.genSalt(10);
             const senhaHash = await bcrypt.hash(senha, salt);
             
-            sql += `, senha = ?`; // Adiciona o campo de senha na query
-            values.push(senhaHash); // Adiciona o hash da nova senha aos valores
+            sql += `, senha = ?`;
+            values.push(senhaHash);
         }
 
         // 3. Finaliza a query e executa
@@ -326,24 +307,18 @@ app.delete('/alunos/:id', protegerRota, async (req, res) => {
     try {
         conn = await pool.getConnection();
 
-        // 1. ANTES de deletar, buscamos o caminho da foto do aluno no banco.
         const [aluno] = await conn.query('SELECT foto_path FROM alunos WHERE id = ?', [alunoId]);
         const fotoPath = aluno ? aluno.foto_path : null;
 
-        // 2. Deletamos o registro do aluno do banco de dados.
         const result = await conn.query('DELETE FROM alunos WHERE id = ?', [alunoId]);
 
         if (result.affectedRows > 0) {
-            // 3. Se o aluno foi deletado com sucesso E ele tinha uma foto...
             if (fotoPath) {
-                // ...nós tentamos deletar o arquivo de imagem do servidor.
                 try {
                     const publicIdWithFolder = fotoPath.split('/').slice(-2).join('/').split('.')[0];
                     await cloudinary.uploader.destroy(publicIdWithFolder);
                     console.log(`Foto deletada do Cloudinary: ${publicIdWithFolder}`);
                 } catch (cloudinaryErr) {
-                    // Se houver um erro ao deletar o arquivo (ex: não encontrado),
-                    // apenas registramos no console, mas não quebramos a requisição.
                     console.error("Erro ao deletar arquivo de foto:", cloudinaryErr);
                 }
             }
@@ -355,7 +330,7 @@ app.delete('/alunos/:id', protegerRota, async (req, res) => {
         if (conn) conn.release();
         res.status(500).json({ error: "Erro interno no servidor", details: err.message });
     } finally {
-   if (conn) conn.release(); // <-- CORRIGIDO
+   if (conn) conn.release(); 
 }
 });
 
@@ -366,15 +341,12 @@ app.get('/alunos/:id', protegerRota, async (req, res) => {
     }
     let conn;
     try {
-        // --- LINHA CORRIGIDA ---
-        // A linha que faltava foi adicionada novamente.
         conn = await pool.getConnection(); 
         
         const [aluno] = await conn.query(`SELECT * FROM alunos WHERE id = ?`, [req.params.id]);
         conn.release();
         
         if (aluno) {
-            // Agora retorna apenas os dados do aluno
             res.json({ data: aluno }); 
         } else {
             res.status(404).json({ error: "Aluno não encontrado" });
@@ -389,13 +361,11 @@ app.get('/alunos/:id', protegerRota, async (req, res) => {
 
 // Rota para o aluno logado buscar seus próprios dados
 app.get('/api/meus-dados', protegerRota, async (req, res) => {
-    // O middleware 'protegerRota' já validou o token e nos deu o 'req.usuario'
     const alunoId = req.usuario.id;
     let conn;
 
     try {
         conn = await pool.getConnection();
-        // Usamos o ID que veio do token para buscar os dados com segurança
         const [aluno] = await conn.query('SELECT id, nome, email, telefone, sexo, dataNascimento, faixa, grau, plano, foto_path, permissao FROM alunos WHERE id = ?', [alunoId]);
         conn.release();
 
@@ -415,7 +385,6 @@ app.get('/api/meus-dados', protegerRota, async (req, res) => {
 
 // Rota para o aluno fazer check-in
 app.post('/api/checkin', protegerRota, async (req, res) => {
-    // O ID do aluno vem do token, garantindo que ninguém possa fazer check-in por outro.
     const alunoId = req.usuario.id;
     let conn;
 
@@ -456,15 +425,13 @@ app.get('/api/me/checkins', protegerRota, async (req, res) => {
 
     try {
         conn = await pool.getConnection();
-
-        // Busca todos os check-ins do aluno, ordenados do mais recente para o mais antigo
         const checkins = await conn.query(
             'SELECT data_checkin FROM checkins WHERE aluno_id = ? ORDER BY data_checkin DESC',
             [alunoId]
         );
 
         conn.release();
-        res.json(checkins); // Retorna a lista de check-ins
+        res.json(checkins);
 
     } catch (err) {
         console.error("Erro ao buscar histórico de check-ins:", err);
@@ -481,17 +448,15 @@ app.get('/api/alunos/:id/checkins', protegerRota, async (req, res) => {
     }
 
     const alunoId = req.params.id;
-    // Pega os parâmetros da URL: ?page=1&date=2023-10-27
     const page = parseInt(req.query.page) || 1;
     const searchDate = req.query.date || '';
-    const limit = 20; // 20 resultados por página
+    const limit = 20;
     const offset = (page - 1) * limit;
 
     let conn;
     try {
         conn = await pool.getConnection();
 
-        // Constrói a cláusula WHERE dinamicamente para a busca por data
         let whereClause = 'WHERE aluno_id = ?';
         let params = [alunoId];
         
@@ -549,11 +514,10 @@ app.get('/api/presenca/hoje', protegerRota, async (req, res) => {
         conn = await pool.getConnection();
         const agora = new Date();
         const ano = agora.getFullYear();
-        const mes = String(agora.getMonth() + 1).padStart(2, '0'); // Meses são de 0-11
+        const mes = String(agora.getMonth() + 1).padStart(2, '0');
         const dia = String(agora.getDate()).padStart(2, '0');
         const hoje = `${ano}-${mes}-${dia}`;
 
-        // Query com JOIN para pegar o nome e foto do aluno junto com o check-in
         const sql = `
             SELECT 
                 a.id, 
@@ -613,7 +577,7 @@ app.delete('/api/checkins/:id', protegerRota, async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado.' });
     }
-    const { id } = req.params; // ID do check-in, não do aluno
+    const { id } = req.params;
     let conn;
     try {
         conn = await pool.getConnection();
@@ -636,11 +600,10 @@ app.delete('/api/checkins/:id', protegerRota, async (req, res) => {
 // Rota para o aluno logado alterar a própria senha
 app.put('/api/me/alterar-senha', protegerRota, async (req, res) => {
     const { senhaAntiga, novaSenha } = req.body;
-    const alunoId = req.usuario.id; // ID vem do token, é seguro.
+    const alunoId = req.usuario.id;
     let conn;
 
     try {
-        // Validação
         if (!senhaAntiga || !novaSenha) {
             return res.status(400).json({ error: 'Senha antiga e nova senha são obrigatórias.' });
         }
@@ -723,14 +686,11 @@ app.put('/api/me/foto', protegerRota, upload.single('foto'), async (req, res) =>
     try {
         conn = await pool.getConnection();
 
-        // 1. Antes de atualizar, busca o caminho da foto antiga para poder deletá-la
         const [aluno] = await conn.query('SELECT foto_path FROM alunos WHERE id = ?', [alunoId]);
         const fotoAntigaPath = aluno ? aluno.foto_path : null;
 
-        // 2. Atualiza o banco de dados com o caminho da nova foto
         await conn.query('UPDATE alunos SET foto_path = ? WHERE id = ?', [novaFotoPath, alunoId]);
 
-        // 3. Se existia uma foto antiga, deleta o arquivo do Cloudinary
         if (fotoAntigaPath) {
             try {
                 // Extrai o public_id da URL completa (ex: 'fotos_alunos/foto-12345')
