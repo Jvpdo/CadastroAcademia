@@ -503,7 +503,7 @@ app.get('/api/alunos/:id/checkins', protegerRota, async (req, res) => {
     }
 });
 
-// Rota para buscar a lista de presença do dia (Apenas Admin)
+// Rota para buscar la lista de presença do dia (Apenas Admin)
 app.get('/api/presenca/hoje', protegerRota, async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado.' });
@@ -512,11 +512,11 @@ app.get('/api/presenca/hoje', protegerRota, async (req, res) => {
     let conn;
     try {
         conn = await pool.getConnection();
-        const agora = new Date();
-        const ano = agora.getFullYear();
-        const mes = String(agora.getMonth() + 1).padStart(2, '0');
-        const dia = String(agora.getDate()).padStart(2, '0');
-        const hoje = `${ano}-${mes}-${dia}`;
+
+        // Pega a data atual convertida para o fuso horário de São Paulo
+        const [rows] = await conn.query("SELECT CURDATE() AS hoje");
+        const hoje = rows.hoje;
+
 
         const sql = `
             SELECT 
@@ -526,7 +526,9 @@ app.get('/api/presenca/hoje', protegerRota, async (req, res) => {
                 c.data_checkin
             FROM checkins c
             JOIN alunos a ON c.aluno_id = a.id
-            WHERE DATE(c.data_checkin) = ?
+            -- A mágica acontece aqui: convertemos o timestamp do check-in para o fuso de SP
+            -- antes de comparar com a data de "hoje"
+            WHERE DATE(CONVERT_TZ(c.data_checkin, '+00:00', '-03:00')) = ?
             ORDER BY c.data_checkin DESC;
         `;
         
