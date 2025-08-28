@@ -383,7 +383,7 @@ app.get('/api/meus-dados', protegerRota, async (req, res) => {
     }
 });
 
-// Rota para o aluno fazer check-in
+// Rota para o aluno fazer check-in (VERSÃO CORRIGIDA)
 app.post('/api/checkin', protegerRota, async (req, res) => {
     const alunoId = req.usuario.id;
     let conn;
@@ -391,11 +391,13 @@ app.post('/api/checkin', protegerRota, async (req, res) => {
     try {
         conn = await pool.getConnection();
 
-        // 1. Verifica se o aluno já fez check-in no dia de hoje
-        const hoje = new Date().toISOString().slice(0, 10); // Pega a data de hoje no formato YYYY-MM-DD
+        // 1. Verifica se o aluno já fez check-in no dia de HOJE (considerando o fuso -03:00)
+        // A query agora converte o fuso horário ANTES de comparar a data.
         const [checkinsAnteriores] = await conn.query(
-            'SELECT * FROM checkins WHERE aluno_id = ? AND DATE(data_checkin) = ?',
-            [alunoId, hoje]
+            `SELECT id FROM checkins 
+             WHERE aluno_id = ? 
+             AND DATE(CONVERT_TZ(data_checkin, '+00:00', '-03:00')) = CURDATE()`,
+            [alunoId]
         );
 
         if (checkinsAnteriores) {
@@ -404,9 +406,9 @@ app.post('/api/checkin', protegerRota, async (req, res) => {
         }
 
         // 2. Se não houver check-in hoje, insere um novo registro
+        // O banco de dados continuará salvando em UTC (o que é o correto)
         await conn.query('INSERT INTO checkins (aluno_id) VALUES (?)', [alunoId]);
 
-        conn.release();
         res.status(201).json({ message: 'Check-in realizado com sucesso!' });
 
     } catch (err) {
@@ -441,7 +443,7 @@ app.get('/api/me/checkins', protegerRota, async (req, res) => {
     }
 });
 
-// Rota para buscar o histórico de check-ins de um aluno com paginação e filtro
+// Rota para buscar o histórico de check-ins de um aluno (VERSÃO CORRIGIDA)
 app.get('/api/alunos/:id/checkins', protegerRota, async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado.' });
@@ -449,7 +451,7 @@ app.get('/api/alunos/:id/checkins', protegerRota, async (req, res) => {
 
     const alunoId = req.params.id;
     const page = parseInt(req.query.page) || 1;
-    const searchDate = req.query.date || '';
+    const searchDate = req.query.date || ''; // Formato esperado: 'AAAA-MM-DD'
     const limit = 20;
     const offset = (page - 1) * limit;
 
@@ -461,17 +463,17 @@ app.get('/api/alunos/:id/checkins', protegerRota, async (req, res) => {
         let params = [alunoId];
         
         if (searchDate) {
-            whereClause += ' AND DATE(data_checkin) = ?';
+            // Aplicamos a mesma conversão de fuso na cláusula de busca
+            whereClause += " AND DATE(CONVERT_TZ(data_checkin, '+00:00', '-03:00')) = ?";
             params.push(searchDate);
         }
 
-        // Query para contar o número TOTAL de resultados (para calcular o total de páginas)
         const countQuery = `SELECT COUNT(*) as total FROM checkins ${whereClause}`;
         const [totalResult] = await conn.query(countQuery, params);
         const totalItems = totalResult.total;
         const totalPages = Math.ceil(totalItems / limit);
 
-        // Query principal com LIMIT e OFFSET para a paginação
+        // A query principal agora usa a cláusula WHERE corrigida
         const dataQuery = `
             SELECT id, data_checkin 
             FROM checkins 
@@ -479,13 +481,13 @@ app.get('/api/alunos/:id/checkins', protegerRota, async (req, res) => {
             ORDER BY data_checkin DESC 
             LIMIT ? OFFSET ?
         `;
+        // Adiciona os parâmetros de paginação depois dos de filtro
         params.push(limit, offset);
         
         const checkins = await conn.query(dataQuery, params);
         
         conn.release();
 
-        // Retorna os dados da página E as informações de paginação
         res.json({
             checkins: checkins,
             pagination: {
@@ -544,26 +546,29 @@ app.get('/api/presenca/hoje', protegerRota, async (req, res) => {
     }
 });
 
-// Rota para o admin ADICIONAR um check-in manualmente
+// Rota para o admin ADICIONAR um check-in manualmente (VERSÃO CORRIGIDA)
 app.post('/api/checkins/manual', protegerRota, async (req, res) => {
     if (req.usuario.permissao !== 'admin') {
         return res.status(403).json({ error: 'Acesso negado.' });
     }
 
-    const { aluno_id, data_checkin } = req.body;
+    // data_checkin deve vir no formato 'AAAA-MM-DD HH:mm:ss' do frontend
+    const { aluno_id, data_checkin } = req.body; 
 
     if (!aluno_id || !data_checkin) {
-        return res.status(400).json({ error: 'ID do aluno e data são obrigatórios.' });
+        return res.status(400).json({ error: 'ID do aluno e data/hora do check-in são obrigatórios.' });
     }
 
     let conn;
     try {
         conn = await pool.getConnection();
+        
+        // Convertemos o horário local enviado para UTC antes de salvar no banco
         const result = await conn.query(
-            'INSERT INTO checkins (aluno_id, data_checkin) VALUES (?, ?)',
+            "INSERT INTO checkins (aluno_id, data_checkin) VALUES (?, CONVERT_TZ(?, '-03:00', '+00:00'))",
             [aluno_id, data_checkin]
         );
-        conn.release();
+
         res.status(201).json({ id: result.insertId, message: 'Check-in adicionado com sucesso!' });
     } catch (err) {
         console.error("Erro ao adicionar check-in manual:", err);
