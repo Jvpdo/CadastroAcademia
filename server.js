@@ -20,6 +20,7 @@ const pool = mariadb.createPool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
   connectionLimit: 3,
+  idleTimeout: 60000,
 });
 
 // --- Configuração do Cloudinary ---
